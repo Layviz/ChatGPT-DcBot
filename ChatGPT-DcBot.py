@@ -1,10 +1,13 @@
-import openai
 from openai import AsyncOpenAI
 import discord
 from discord.ext import commands
+import json
+
+with open("keys.json","r") as fp:
+    secrets = json.load(fp)
 
 client = AsyncOpenAI(
-    api_key=""
+    api_key=secrets["openai.api-key"]
 )
 
 intents = discord.Intents.default()
@@ -20,21 +23,22 @@ async def on_ready():
 async def message(ctx, text):
     try:
         async with ctx.typing():
-            MODEL = "gpt-3.5-turbo"
-            response = await client.chat.completions.create(
-                model=MODEL,
-                messages=[
-                    {"role": "system", "content": "Fasse dich kurz, duze mich, sei freundlich und hilfsbereit"},
-                    {"role": "user", "content": text},
-                ],
-                temperature=0,
-            )
-            print(response)
+            # MODEL = "gpt-3.5-turbo"
+            # response = await client.chat.completions.create(
+            #     model=MODEL,
+            #     messages=[
+            #         {"role": "system", "content": "Fasse dich kurz, duze mich, sei freundlich und hilfsbereit"},
+            #         {"role": "user", "content": text},
+            #     ],
+            #     temperature=0,
+            # )
+            # print(response)
+            # Antwort=response.choices[0].message.content
+            Antwort="Test Nachricht"
 
-            Antwort=response.choices[0].message.content
             print(Antwort)
             await ctx.send(Antwort)
     except Exception as e:
         print(e)
 
-bot.run('')
+bot.run(secrets["discord-bot.token"])
