@@ -4,12 +4,20 @@ import discord.app_commands
 import json
 import logging
 import threading
+import sys
 
 logging.basicConfig(format="%(asctime)s %(levelname)s: %(message)s",level=logging.DEBUG)
 
 logging.info("Loading keys")
-with open("keys.json","r") as fp:
-    secrets = json.load(fp)
+try:
+    with open("keys.json","r") as fp:
+        secrets = json.load(fp)
+except OSError:
+    logging.error("keys.json could not be opened for reading")
+    with open("keys.json","x") as fp:
+        json.dump({"openai.api-key":"YOUR_OPENAI_API_KEY","discord-bot.token":"YOUR_DISCORD_BOT_TOKEN"},fp,indent=4)
+    logging.info("created new keys.json. Please provide the required keys")
+    sys.exit(1)
 
 logging.info("Setting up discord bot")
 intents = discord.Intents.default()
