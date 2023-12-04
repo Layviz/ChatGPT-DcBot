@@ -29,9 +29,9 @@ logging.info("Setting up openai")
 client = AsyncOpenAI(
     api_key=secrets["openai.api-key"]
 )
-MODEL = "gpt-3.5-turbo"
+MODEL = "gpt-3.5-turbo-1106"
 total_token = 0
-TOKEN_LIMIT=22222
+TOKEN_LIMIT=14000
 SYSTEM_MESSAGE=f"Du bist ChatGPT-DcBot. Du bist hier um mit den Nutzern interessante Gespräche zu führen. Die Nachrichten könnten von verschiedenen Nutzern kommen, daher beginnt jede Nachricht mit dem Nutzernamen. Wenn eine deiner Antworten an einen Nutzer im speziellen gerichtet ist, verwende ein @-Zeichen gefolgt vom entsprechenden Nutzernamen in der Antwort. Fasse dich kurz und duze die Nutzer."
 message_memory=[
     {"role": "system", "content": SYSTEM_MESSAGE}
@@ -57,6 +57,7 @@ async def get_chatgpt_response(prompt):
         logging.warning("The current conversation has reached the token limit!")
         message_memory=message_memory[len(message_memory)//2:]
         message_memory.insert(0,{"role": "system", "content": SYSTEM_MESSAGE})
+        total_token=-1
     return antwort
 
 @bot.event
@@ -66,15 +67,19 @@ async def on_ready():
 
 def timed_clear():
     global message_memory 
+    global total_token
     message_memory = [{"role": "system", "content": SYSTEM_MESSAGE}] 
     info_str=f"Die bisherige Konversation wurde nach Timeout gelöscht."
+    total_token=0
     logging.info(info_str)
 
 @tree.command(name="clear",guild=discord.Object(id=1150429390015037521))
 async def clear(interaction: discord.Interaction):
     global message_memory 
+    global total_token
     message_memory = [{"role": "system", "content": SYSTEM_MESSAGE}] 
     info_str=f"Die bisherige Konversation wurde gelöscht."
+    total_token=0
     logging.info(info_str)
     await interaction.response.send_message(info_str)
 
