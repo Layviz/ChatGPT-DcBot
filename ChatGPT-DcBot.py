@@ -1,4 +1,4 @@
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI,BadRequestError
 import discord
 import discord.app_commands
 import json
@@ -38,27 +38,34 @@ message_memory=[
 ]
 
 timer = None
+error = None
 
 async def get_chatgpt_response(prompt):
     global total_token
     global message_memory
-    message_memory.append({"role": "user", "content": prompt})
-    response = await client.chat.completions.create(
-        model=MODEL,
-        messages=message_memory,
-        temperature=1,
-    )
-    logging.debug(f"API-Response received: {response}")
-    antwort=response.choices[0].message.content
-    message_memory.append({"role":"assistant", "content":antwort})
-    total_token = response.usage.total_tokens
-    logging.debug(f"Total number of tokens is now {total_token}")
-    if total_token > TOKEN_LIMIT:
-        logging.warning("The current conversation has reached the token limit!")
-        message_memory=message_memory[len(message_memory)//2:]
-        message_memory.insert(0,{"role": "system", "content": SYSTEM_MESSAGE})
-        total_token=-1
-    return antwort
+    try:
+        message_memory.append({"role": "user", "content": prompt})
+        response = await client.chat.completions.create(
+            model=MODEL,
+            messages=message_memory,
+            temperature=1,
+        )
+        logging.debug(f"API-Response received: {response}")
+        antwort=response.choices[0].message.content
+        message_memory.append({"role":"assistant", "content":antwort})
+        total_token = response.usage.total_tokens
+        logging.debug(f"Total number of tokens is now {total_token}")
+        if total_token > TOKEN_LIMIT:
+            logging.warning("The current conversation has reached the token limit!")
+            message_memory=message_memory[len(message_memory)//2:]
+            message_memory.insert(0,{"role": "system", "content": SYSTEM_MESSAGE})
+            total_token=-1
+        return antwort
+    except BadRequestError as e:
+        global error
+        error = e
+        antwort = f"Bei der Verarbeitung ist ein Fehler aufgetreten ({e.code})."
+        return antwort
 
 @bot.event
 async def on_ready():
@@ -87,6 +94,13 @@ async def clear(interaction: discord.Interaction):
 async def info(interaction: discord.Interaction):
     messages_len = len(message_memory)
     info_str=f"Diese Konversation besteht zur Zeit aus {messages_len} Nachrichten. Das entspricht {total_token} Tokens."
+    logging.info(info_str)
+    await interaction.response.send_message(info_str)
+
+@tree.command(name="error",guild=discord.Object(id=1150429390015037521))
+async def error_message(interaction: discord.Interaction):
+    global error
+    info_str=f"Fehlercode: {error.code}\nNachricht: {error.message}"
     logging.info(info_str)
     await interaction.response.send_message(info_str)
 
