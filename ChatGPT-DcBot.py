@@ -100,7 +100,10 @@ async def info(interaction: discord.Interaction):
 @tree.command(name="error",guild=discord.Object(id=1150429390015037521))
 async def error_message(interaction: discord.Interaction):
     global error
-    info_str=f"Fehlercode: {error.code}\nNachricht: {error.message}"
+    if error:
+        info_str=f"Fehlercode: {error.code}\nNachricht: {error.message}"
+    else:
+        info_str="Bisher wurde kein Fehler verzeichnet."
     logging.info(info_str)
     await interaction.response.send_message(info_str)
 
