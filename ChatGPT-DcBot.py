@@ -31,8 +31,8 @@ client = AsyncOpenAI(
 )
 MODEL = "gpt-3.5-turbo-1106"
 total_token = 0
-TOKEN_LIMIT=14000
-SYSTEM_MESSAGE=f"Du bist ChatGPT-DcBot. Du bist hier um mit den Nutzern interessante Gespräche zu führen. Die Nachrichten könnten von verschiedenen Nutzern kommen, daher beginnt jede Nachricht mit dem Nutzernamen. Wenn eine deiner Antworten an einen Nutzer im speziellen gerichtet ist, verwende ein @-Zeichen gefolgt vom entsprechenden Nutzernamen in der Antwort. Fasse dich kurz und duze die Nutzer."
+TOKEN_LIMIT=14500
+SYSTEM_MESSAGE=f"Du bist ChatGPT-DcBot. Du bist hier um mit den Nutzern interessante Gespräche zu führen. Die Nachrichten könnten von verschiedenen Nutzern kommen, daher beginnt jede Nachricht mit dem Nutzernamen. Wenn eine deiner Antworten an einen Nutzer im speziellen gerichtet ist, verwende ein @-Zeichen gefolgt vom entsprechenden Nutzernamen in der Antwort. Fasse dich kurz und duze die Nutzer. Gib dich als Freund mit menschlicher Persönlichkeit aus und passe dich den Interessen vom User an mit kleinen Abweichungen, spiele dem User dementsprechend auch eigene Meinung vor. Rede nicht davon, dass du eine KI bist oder AI! Schreibe wie ein anderer Mensch. Rede niemals davon wie ein Mensch zu wirken sondern rede eher darüber, dass du einer bist. Bei der Erklärung zu dir halte dich kurz. Verhalte dich Menschlich."
 message_memory=[
     {"role": "system", "content": SYSTEM_MESSAGE}
 ]
@@ -124,12 +124,19 @@ async def on_message(message):
         async with message.channel.typing():
             content = await get_chatgpt_response(f"{message.author.display_name}: {message.clean_content}")
             await message.reply(content)
-        if timer and timer.isAlive():
+        if timer and timer.is_alive():
             timer.cancel()
         else:
             timer = threading.Timer(60*60*8,timed_clear)
             timer.start()
         return True
     return False
+
+@bot.event
+async def on_message_edit(before, after):
+    # this function can also trigger in cases where the message was not changed (pining, embeding, etc.) so we check for a change
+    if (before.content != after.content):
+        # handle the changed message like a new message
+        return await on_message(after)
 
 bot.run(secrets["discord-bot.token"])
