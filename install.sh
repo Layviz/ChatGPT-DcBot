@@ -1,5 +1,3 @@
-pipenv install 
-
 sudo tee -a /etc/systemd/system/ChatGPT-DcBot.service << EOF
 [Unit]
 After=network.target
@@ -8,7 +6,7 @@ After=network.target
 User=$(whoami)
 Group=$(whoami)
 WorkingDirectory=$(pwd)
-ExecStart=pipenv run $(pwd)/ChatGPT-DcBot.py
+ExecStart=/usr/bin/python -m pipenv run $(pwd)/ChatGPT-DcBot.py
 
 [Install]
 WantedBy=multi-user.target
