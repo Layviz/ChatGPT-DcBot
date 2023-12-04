@@ -70,7 +70,6 @@ def timed_clear():
     info_str=f"Die bisherige Konversation wurde nach Timeout gelöscht."
     logging.info(info_str)
 
-
 @tree.command(name="clear",guild=discord.Object(id=1150429390015037521))
 async def clear(interaction: discord.Interaction):
     global message_memory 
@@ -85,7 +84,6 @@ async def info(interaction: discord.Interaction):
     info_str=f"Diese Konversation besteht zur Zeit aus {messages_len} Nachrichten. Das entspricht {total_token} Tokens."
     logging.info(info_str)
     await interaction.response.send_message(info_str)
-
 
 @bot.event
 async def on_message(message):
@@ -113,4 +111,3 @@ async def on_message(message):
     return False
 
 bot.run(secrets["discord-bot.token"])
-
