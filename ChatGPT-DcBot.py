@@ -107,6 +107,26 @@ async def error_message(interaction: discord.Interaction):
     logging.info(info_str)
     await interaction.response.send_message(info_str)
 
+@tree.command(name="help",guild=discord.Object(id=1150429390015037521))
+async def hilfe(interaction: discord.Interaction):
+    help_text="""Anleitung zur Nutzung von ChatGPT-DcBot:
+
+Mit @ Und dem Namen des Bots; "ChatGPT-DcBot" kann man ihm schreiben. Tippe einfach dann das ein was du möchtest und schon wird dir darauf geantwortet.
+
+Antworte dann einfach auf seine Nachricht um das Gespräch fortzuführen.
+
+Mit "/info" kann man sich anzeigen lassen, wie viel Token der derzeitige Chat kostet.
+
+Mit "/clear" Kann man den aktuellen Chat löschen.
+
+Mit "/help" Kannst du den Bot nach Hilfe Fragen.
+
+Bei Fragen Kann man den Admin des Servers anschreiben, oder ein Thread öffnen bei "hilfe" und dort nach Hilfe Fragen.
+
+Sonst viel Spaß mit dem Bot :)"""
+    logging.info("sending help text")
+    await interaction.response.send_message(help_text)
+
 @bot.event
 async def on_message(message):
     global timer
