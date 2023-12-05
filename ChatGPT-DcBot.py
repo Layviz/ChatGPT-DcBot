@@ -64,7 +64,10 @@ async def get_chatgpt_response(prompt):
     except BadRequestError as e:
         global error
         error = e
-        antwort = f"Bei der Verarbeitung ist ein Fehler aufgetreten ({e.code})."
+        if e.status_code == 400:
+            antwort = "Diese Konversation hat die maximale Länge erreicht. Lösche die Konversation mit /clear und fang eine neue Konversation an."
+        else:
+            antwort = f"Bei der Verarbeitung ist ein Fehler aufgetreten ({e.code})."
         return antwort
 
 @bot.event
@@ -80,7 +83,7 @@ def timed_clear():
     total_token=0
     logging.info(info_str)
 
-@tree.command(name="clear",guild=discord.Object(id=1150429390015037521))
+@tree.command(name="clear", description="Löscht den aktuellen Chat",guild=discord.Object(id=1150429390015037521))
 async def clear(interaction: discord.Interaction):
     global message_memory 
     global total_token
@@ -90,36 +93,38 @@ async def clear(interaction: discord.Interaction):
     logging.info(info_str)
     await interaction.response.send_message(info_str)
 
-@tree.command(name="info",guild=discord.Object(id=1150429390015037521))
+@tree.command(name="info", description="Zeigt an wie viele Tokens der derzeitige Chat kostet.",guild=discord.Object(id=1150429390015037521))
 async def info(interaction: discord.Interaction):
     messages_len = len(message_memory)
     info_str=f"Diese Konversation besteht zur Zeit aus {messages_len} Nachrichten. Das entspricht {total_token} Tokens."
     logging.info(info_str)
     await interaction.response.send_message(info_str)
 
-@tree.command(name="error",guild=discord.Object(id=1150429390015037521))
+@tree.command(name="error", description="Zeigt den letzten aufgetretenen Fehler an",guild=discord.Object(id=1150429390015037521))
 async def error_message(interaction: discord.Interaction):
     global error
     if error:
-        info_str=f"Fehlercode: {error.code}\nNachricht: {error.message}"
+        info_str=f"Fehlercode: {error.status_code} / {error.code}\nNachricht: {error.message}"
     else:
         info_str="Bisher wurde kein Fehler verzeichnet."
     logging.info(info_str)
     await interaction.response.send_message(info_str)
 
-@tree.command(name="help",guild=discord.Object(id=1150429390015037521))
+@tree.command(name="help", description="Zeigt die Hilfe an",guild=discord.Object(id=1150429390015037521))
 async def hilfe(interaction: discord.Interaction):
     help_text="""Anleitung zur Nutzung von ChatGPT-DcBot:
 
-Mit @ Und dem Namen des Bots; "ChatGPT-DcBot" kann man ihm schreiben. Tippe einfach dann das ein was du möchtest und schon wird dir darauf geantwortet.
+Mit @ Und dem Namen des Bots; "ChatGPT-DcBot" kannst du ihm schreiben. Tippe einfach dann das ein was du möchtest und schon wird dir darauf geantwortet.
 
 Antworte dann einfach auf seine Nachricht um das Gespräch fortzuführen.
 
-Mit "/info" kann man sich anzeigen lassen, wie viel Token der derzeitige Chat kostet.
+Mit "/info" kannst du dir anzeigen lassen, wie viel Token der derzeitige Chat kostet.
 
-Mit "/clear" Kann man den aktuellen Chat löschen.
+Mit "/clear" Kannst du den aktuellen Chat löschen.
 
 Mit "/help" Kannst du den Bot nach Hilfe Fragen.
+
+Mit "/error" Kannst du dir den letzten aufgetretenen Fehler anzeigen lassen.
 
 Bei Fragen Kann man den Admin des Servers anschreiben, oder ein Thread öffnen bei "hilfe" und dort nach Hilfe Fragen.
 
@@ -143,6 +148,10 @@ async def on_message(message):
         logging.debug(f"Got this message: {message.clean_content}")
         async with message.channel.typing():
             content = await get_chatgpt_response(f"{message.author.display_name}: {message.clean_content}")
+            while len(content)>2000: #discord message limit
+                index = content.rindex(' ',0,2000)
+                await message.reply(content[:index])
+                content = content[index+1:]
             await message.reply(content)
         if timer and timer.is_alive():
             timer.cancel()
@@ -154,6 +163,7 @@ async def on_message(message):
 
 @bot.event
 async def on_message_edit(before, after):
+    logging.debug("on_message_edit event registered")
     # this function can also trigger in cases where the message was not changed (pining, embeding, etc.) so we check for a change
     if (before.content != after.content):
         # handle the changed message like a new message
