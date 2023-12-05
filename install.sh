@@ -1,3 +1,4 @@
+#!/bin/bash
 sudo tee -a /etc/systemd/system/ChatGPT-DcBot.service << EOF
 [Unit]
 After=network.target
