@@ -118,13 +118,13 @@ Mit @ Und dem Namen des Bots; "ChatGPT-DcBot" kannst du ihm schreiben. Tippe ein
 
 Antworte dann einfach auf seine Nachricht um das Gespräch fortzuführen.
 
-Mit "/info" kannst du dir anzeigen lassen, wie viel Token der derzeitige Chat kostet.
+Mit `/info` kannst du dir anzeigen lassen, wie viel Token der derzeitige Chat kostet.
 
-Mit "/clear" Kannst du den aktuellen Chat löschen.
+Mit `/clear` Kannst du den aktuellen Chat löschen.
 
-Mit "/help" Kannst du den Bot nach Hilfe Fragen.
+Mit `/help` Kannst du den Bot nach Hilfe Fragen.
 
-Mit "/error" Kannst du dir den letzten aufgetretenen Fehler anzeigen lassen.
+Mit `/error` Kannst du dir den letzten aufgetretenen Fehler anzeigen lassen.
 
 Bei Fragen Kann man den Admin des Servers anschreiben, oder ein Thread öffnen bei "hilfe" und dort nach Hilfe Fragen.
 
@@ -144,6 +144,9 @@ async def on_message(message):
             return False
         if message.author.bot:
             logging.info("ignoring bot message")
+            return False
+        if type(message.channel) != discord.channel.TextChannel:
+            logging.info("ignoring message on a not text channel")
             return False
         logging.debug(f"Got this message: {message.clean_content}")
         async with message.channel.typing():
