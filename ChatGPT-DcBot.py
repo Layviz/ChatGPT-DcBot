@@ -183,7 +183,9 @@ Mit `/info` kannst du dir anzeigen lassen, wie viel Token der derzeitige Chat ko
 
 Mit `/clear` Kannst du den aktuellen Chat löschen.
 
-Mit `/peter_box` Kannst du den aktuellen Chat löschen und stattdessen mit Peter Box reden .
+Mit `/peter_box` Kannst du den aktuellen Chat löschen und stattdessen mit Peter Box reden.
+
+Mit `/vorlesen` Kannst du die letzte Chatnachricht vorlesen lassen.
 
 Mit `/help` Kannst du den Bot nach Hilfe Fragen.
 
