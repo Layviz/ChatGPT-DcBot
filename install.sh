@@ -7,7 +7,7 @@ After=network.target
 User=$(whoami)
 Group=$(whoami)
 WorkingDirectory=$(pwd)
-ExecStart=/usr/bin/python -m pipenv run python $(pwd)/ChatGPT-DcBot.py
+ExecStart=$(pwd)/update_start_Bot.py
 
 [Install]
 WantedBy=multi-user.target

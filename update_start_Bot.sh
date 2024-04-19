@@ -1,4 +1,4 @@
 #!/bin/bash
 git pull
 chmod +x update_start_Bot.sh
-/usr/bin/python ChatGPT-DcBot.py
+/usr/bin/python -m pipenv run python ChatGPT-DcBot.py
