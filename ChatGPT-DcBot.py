@@ -179,15 +179,15 @@ Mit @ Und dem Namen des Bots; "ChatGPT-DcBot" kannst du ihm schreiben. Tippe ein
 
 Antworte dann einfach auf seine Nachricht um das Gespräch fortzuführen.
 
-Mit `/info` kannst du dir anzeigen lassen, wie viel Token der derzeitige Chat kostet.
+Mit `/help` Kannst du den Bot nach Hilfe Fragen.
 
 Mit `/clear` Kannst du den aktuellen Chat löschen.
 
-Mit `/peter_box` Kannst du den aktuellen Chat löschen und stattdessen mit Peter Box reden.
-
 Mit `/vorlesen` Kannst du die letzte Chatnachricht vorlesen lassen.
 
-Mit `/help` Kannst du den Bot nach Hilfe Fragen.
+Mit `/peter_box` Kannst du den aktuellen Chat löschen und stattdessen mit Peter Box reden.
+
+Mit `/info` kannst du dir anzeigen lassen, wie viel Token der derzeitige Chat kostet.
 
 Mit `/error` Kannst du dir den letzten aufgetretenen Fehler anzeigen lassen.
 
