@@ -6,5 +6,6 @@ name = "pypi"
 [packages]
 discord = "*"
 openai = "*"
+pynacl = "*"
 
 [dev-packages]
