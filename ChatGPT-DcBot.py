@@ -183,7 +183,7 @@ Mit `/help` Kannst du den Bot nach Hilfe Fragen.
 
 Mit `/clear` Kannst du den aktuellen Chat löschen.
 
-Mit `/vorlesen` Kannst du die letzte Chatnachricht vorlesen lassen.
+Mit `/vorlesen` Kannst du die letzte Chatnachricht vorlesen lassen. (Wenn in VC, Audio wird ebenfalls generiert im Chat.)
 
 Mit `/peter_box` Kannst du den aktuellen Chat löschen und stattdessen mit Peter Box reden.
 
