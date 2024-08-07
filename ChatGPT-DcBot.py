@@ -92,7 +92,10 @@ async def get_chatgpt_response(prompt):
 
 @bot.event
 async def on_ready():
-    await tree.sync(guild=discord.Object(id=1150429390015037521))
+    commands = await tree.sync(guild=discord.Object(id=1150429390015037521))
+    print("Synced Commands:")
+    for com in commands:
+        print(f"{com.name}")
     logging.info(f'{bot.user.name} ist bereit!')
 
 def timed_clear():
@@ -151,14 +154,14 @@ async def error_message(interaction: discord.Interaction):
 
 @tree.command(name="vorlesen", description="Liest die letzte Nachricht vor.",guild=discord.Object(id=1150429390015037521))
 async def vorlesen(interaction: discord.Interaction):
-    interaction.response.defer(thinking=True)
+    await interaction.response.defer(thinking=True)
     user = interaction.user
     voice_channel = user.voice.channel
     response = await client.audio.speech.create(model="tts-1",voice="onyx",input=message_memory[-1]['content'],response_format='opus')
     tempfile = "temp.opus"
     response.stream_to_file(tempfile)
     file = discord.File(tempfile,filename="Nachricht.opus")
-    await interaction.response.send_message("Hier ist die vorgelesene Nachricht",file=file)
+    await interaction.followup.send("Hier ist die vorgelesene Nachricht",file=file)
     if voice_channel!=None:
         audio =discord.FFmpegOpusAudio(tempfile)
         vc = await voice_channel.connect()
