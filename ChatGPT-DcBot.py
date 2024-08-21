@@ -5,7 +5,8 @@ import json
 import logging
 import threading
 import sys
-import asyncio, io
+import asyncio,os
+from ffmpeg import FFmpeg
 
 logging.basicConfig(format="%(asctime)s %(levelname)s: %(message)s",level=logging.DEBUG)
 
@@ -54,6 +55,7 @@ frequency = DEFAULT_FREQUENCY
 presence= DEFAULT_PRESENCE
 total_token = 0
 
+last_message_read = 0
 timer = None
 error = None
 
@@ -154,15 +156,27 @@ async def error_message(interaction: discord.Interaction):
 
 @tree.command(name="vorlesen", description="Liest die letzte Nachricht vor.",guild=discord.Object(id=1150429390015037521))
 async def vorlesen(interaction: discord.Interaction):
+    global last_message_read
     await interaction.response.defer(thinking=True)
     user = interaction.user
     voice_channel = user.voice.channel
-    response = await client.audio.speech.create(model="tts-1",voice="onyx",input=message_memory[-1]['content'],response_format='opus')
+    message_to_read = message_memory[-1]['content']
     tempfile = "temp.opus"
-    response.stream_to_file(tempfile)
-    file = discord.File(tempfile,filename="Nachricht.opus")
-    await interaction.followup.send("Hier ist die vorgelesene Nachricht",file=file)
+    convfile = "temp.mp3"
+    if hash(message_to_read) != last_message_read:
+        response = await client.audio.speech.create(model="tts-1",voice="onyx",input=message_to_read,response_format='opus')
+        response.stream_to_file(tempfile)
+        if os.path.exists(convfile): 
+            os.remove(convfile)
+        #ffmpeg -i Nachricht.opus -vn -ar 44100 -ac 2 -q:a 2 Nachricht.mp3
+        FFmpeg().input(tempfile).output(convfile,{"q:a":2},vn=None,ar=44100).execute()
+        logging.debug("File converted")
+        file = discord.File(convfile,filename="Nachricht.mp3")
+        await interaction.followup.send("Hier ist die vorgelesene Nachricht",file=file)
+        logging.debug("Sent followup mesage")
     if voice_channel!=None:
+        if hash(message_to_read) == last_message_read:
+            await interaction.followup.send("Nachricht wird erneut vorgelesen")
         audio =discord.FFmpegOpusAudio(tempfile)
         vc = await voice_channel.connect()
         vc.play(audio)
@@ -172,6 +186,7 @@ async def vorlesen(interaction: discord.Interaction):
         await vc.disconnect()
     else:
         logging.error(f"{user.display_name} ist nicht in einem Voice Channel")
+    last_message_read = hash(message_to_read)
     
 
 @tree.command(name="help", description="Zeigt die Hilfe an",guild=discord.Object(id=1150429390015037521))
