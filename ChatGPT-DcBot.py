@@ -150,7 +150,7 @@ async def chatGPT(interaction: discord.Interaction):
     info_str=f"Die bisherige Konversation wurde gelöscht über /chat_gpt"
     total_token=0
     logging.info(info_str)
-    response = await get_chatgpt_response(f"{interaction.user.display_name}: ")
+    response = await get_chatgpt_response(f"{interaction.user.display_name}: Hallo")
     await interaction.followup.send(response)
 
 @tree.command(name="peter_box", description="Löscht den aktuellen Chat und startet einen Chat mit Peter Box",guild=discord.Object(id=1150429390015037521))
@@ -180,9 +180,9 @@ async def schneutsch(interaction: discord.Interaction):
     presence= SCHNEUTSCH_PRESENCE
     voice=SCHNEUTSCH_VOICE
     total_token=0
-    info_str=f"Die bisherige Konversation wurde gelöscht und Peter Box ist erschienen."
+    info_str=f"Die bisherige Konversation wurde gelöscht und das Schneutsch-Lexikon ist da."
     logging.info(info_str)
-    response = await get_chatgpt_response(f"{interaction.user.display_name}: HALLO")
+    response = await get_chatgpt_response(f"{interaction.user.display_name}: Hallo")
     await interaction.followup.send(response)
 
 @tree.command(name="info", description="Zeigt an wie viele Tokens der derzeitige Chat kostet.",guild=discord.Object(id=1150429390015037521))
