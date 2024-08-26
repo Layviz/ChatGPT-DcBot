@@ -239,6 +239,8 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
             file = discord.File(convfile,filename="Nachricht.mp3")
             await interaction.followup.send("Hier ist die vorgelesene Nachricht",file=file)
             logging.debug("Sent followup mesage")
+            last_message_read = hash(message_to_read)
+            last_voice = current_voice
         if voice_channel!=None:
             if hash(message_to_read) == last_message_read:
                 await interaction.followup.send("Nachricht wird erneut vorgelesen")
@@ -251,8 +253,6 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
             await vc.disconnect()
         else:
             logging.error(f"{user.display_name} ist nicht in einem Voice Channel")
-        last_message_read = hash(message_to_read)
-        last_voice = current_voice
     except BadRequestError as e:
         global error
         error = e
