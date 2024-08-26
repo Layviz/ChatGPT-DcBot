@@ -245,6 +245,8 @@ Mit `/vorlesen` Kannst du die letzte Chatnachricht vorlesen lassen. (Wenn in VC,
 
 Mit `/peter_box` Kannst du den aktuellen Chat löschen und stattdessen mit Peter Box reden.
 
+Mit `/chat_gpt` Kannst du den aktuellen Chat löschen und mit ChatGPT reden.
+
 Mit `/info` kannst du dir anzeigen lassen, wie viel Token der derzeitige Chat kostet.
 
 Mit `/error` Kannst du dir den letzten aufgetretenen Fehler anzeigen lassen.
