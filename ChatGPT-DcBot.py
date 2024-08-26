@@ -206,7 +206,7 @@ async def error_message(interaction: discord.Interaction):
 @tree.command(name="vorlesen", description="Liest die letzte Nachricht vor.",guild=discord.Object(id=1150429390015037521))
 @discord.app_commands.describe(stimme="Hiermit kann eine andere Stimme zum vorlesen ausgewählt werden")
 async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Finn","Greta"]=None):
-    global last_message_read
+    global last_message_read, last_voice
     if len(message_memory) <= 1:
         await interaction.response.send_message("Es gibt noch keine Nachricht zum vorlesen.")
         return
