@@ -67,6 +67,7 @@ total_token = 0
 voice=DEFAULT_VOICE
 
 last_message_read = 0
+last_voice = DEFAULT_VOICE
 timer = None
 error = None
 
@@ -215,41 +216,50 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
     voice_channel = user.voice.channel
     tempfile = "temp.opus"
     convfile = "temp.mp3"
-    if hash(message_to_read) != last_message_read:
-        if stimme is None:
-            current_voice=voice
-        else:
-            if stimme == "Steve":
-                current_voice="echo"
-            elif stimme == "Finn":
-                current_voice="fable"
-            elif stimme == "Greta":
-                current_voice="shimmer"
-            else:
-                current_voice=voice
-        response = await client.audio.speech.create(model="tts-1",voice=current_voice,input=message_to_read,response_format='opus')
-        response.stream_to_file(tempfile)
-        if os.path.exists(convfile): 
-            os.remove(convfile)
-        #ffmpeg -i Nachricht.opus -vn -ar 44100 -ac 2 -q:a 2 Nachricht.mp3
-        FFmpeg().input(tempfile).output(convfile,{"q:a":2},vn=None,ar=44100).execute()
-        logging.debug("File converted")
-        file = discord.File(convfile,filename="Nachricht.mp3")
-        await interaction.followup.send("Hier ist die vorgelesene Nachricht",file=file)
-        logging.debug("Sent followup mesage")
-    if voice_channel!=None:
-        if hash(message_to_read) == last_message_read:
-            await interaction.followup.send("Nachricht wird erneut vorgelesen")
-        audio =discord.FFmpegOpusAudio(tempfile)
-        vc = await voice_channel.connect()
-        vc.play(audio)
-        while vc.is_playing():
-            await asyncio.sleep(1)
-        # disconnect after the player has finished
-        await vc.disconnect()
+    if stimme is None:
+        current_voice=voice
     else:
-        logging.error(f"{user.display_name} ist nicht in einem Voice Channel")
-    last_message_read = hash(message_to_read)
+        if stimme == "Steve":
+            current_voice="echo"
+        elif stimme == "Finn":
+            current_voice="fable"
+        elif stimme == "Greta":
+            current_voice="shimmer"
+        else:
+            current_voice=voice
+    try:
+        if hash(message_to_read) != last_message_read or last_voice != current_voice:
+            response = await client.audio.speech.create(model="tts-1",voice=current_voice,input=message_to_read,response_format='opus')
+            response.stream_to_file(tempfile)
+            if os.path.exists(convfile): 
+                os.remove(convfile)
+            #ffmpeg -i Nachricht.opus -vn -ar 44100 -ac 2 -q:a 2 Nachricht.mp3
+            FFmpeg().input(tempfile).output(convfile,{"q:a":2},vn=None,ar=44100).execute()
+            logging.debug("File converted")
+            file = discord.File(convfile,filename="Nachricht.mp3")
+            await interaction.followup.send("Hier ist die vorgelesene Nachricht",file=file)
+            logging.debug("Sent followup mesage")
+        if voice_channel!=None:
+            if hash(message_to_read) == last_message_read:
+                await interaction.followup.send("Nachricht wird erneut vorgelesen")
+            audio =discord.FFmpegOpusAudio(tempfile)
+            vc = await voice_channel.connect()
+            vc.play(audio)
+            while vc.is_playing():
+                await asyncio.sleep(1)
+            # disconnect after the player has finished
+            await vc.disconnect()
+        else:
+            logging.error(f"{user.display_name} ist nicht in einem Voice Channel")
+        last_message_read = hash(message_to_read)
+        last_voice = current_voice
+    except BadRequestError as e:
+        global error
+        error = e
+        await interaction.followup.send("Es ist ein Fehler aufgetreten. Verwende `/error` um mehr zu erfahren.")
+        
+    except:
+        await interaction.followup.send("Es ist ein unbekannter Fehler aufgetreten.")
     
 
 @tree.command(name="help", description="Zeigt die Hilfe an",guild=discord.Object(id=1150429390015037521))
