@@ -22,39 +22,104 @@ except OSError:
     logging.info("created new keys.json. Please provide the required keys")
     sys.exit(1)
 
-logging.info("Setting up discord bot")
-intents = discord.Intents.default()
-intents.message_content = True
-bot = discord.Client(intents=intents)
-tree = discord.app_commands.CommandTree(bot)
+character_config = {
+    "ChatGPT":{
+        "system-message-file":"ChatGPT.txt",
+        "model":"gpt-4o-mini",
+        "temperature":1.0,
+        "frequency":1.0,
+        "presence":1.0,
+        "voice":"nova",
+        "limit":60000
+    },
+    "peter_box":{
+        "system-message-file":"peter_box.txt",
+        "model":"gpt-4o-mini",
+        "temperature":1.1,
+        "frequency":0.9,
+        "presence":0.6,
+        "voice":"onyx",
+        "limit":16000
+    },
+    "schneutsch":{
+        "system-message-file":"schneutsch.txt",
+        "model":"gpt-4o-mini",
+        "temperature":1.0,
+        "frequency":1.0,
+        "presence":1.0,
+        "voice":"alloy",
+        "limit":60000
+    }
+}
 
-logging.info("Setting up openai")
-client = AsyncOpenAI(
-    api_key=secrets["openai.api-key"]
-)
+logging.info("loading config")
+if os.path.exists("config.json"):
+    with open("config.json","r") as fp:
+        character_config = json.load(fp)
+else:
+    logging.error("config.json does not exist!")
+    with open("config.json","x") as fp:
+        json.dump(character_config,fp,indent=4)
+        logging.info("created new config.json with default settings")
 
-TOKEN_LIMIT=14500
+logging.info("loading system messages")
 
-DEFAULT_MODEL = "gpt-4o-mini"
-DEFAULT_SYSTEM_MESSAGE="Du bist ChatGPT-DcBot. Du bist hier um mit den Nutzern interessante Gespräche zu führen. Die Nachrichten könnten von verschiedenen Nutzern kommen, daher beginnt jede Nachricht mit dem Nutzernamen. Fasse dich kurz und duze die Nutzer. Gib dich als Freund mit menschlicher Persönlichkeit aus und passe dich den Interessen vom User an mit kleinen Abweichungen, spiele dem User dementsprechend auch eigene Meinung vor. Rede nicht davon, dass du eine KI bist oder AI! Schreibe wie ein anderer Mensch. Rede niemals davon wie ein Mensch zu wirken sondern rede eher darüber, dass du einer bist. Bei der Erklärung zu dir halte dich kurz. Verhalte dich Menschlich."
-DEFAULT_TEMPERATURE = 1
-DEFAULT_FREQUENCY=1
-DEFAULT_PRESENCE=1
-DEFAULT_VOICE="nova"
+# ChatGPT system message
+default_chatgpt_message = "Du bist ChatGPT-DcBot. Du bist hier um mit den Nutzern interessante Gespräche zu führen. Die Nachrichten könnten von verschiedenen Nutzern kommen, daher beginnt jede Nachricht mit dem Nutzernamen. Fasse dich kurz und duze die Nutzer. Gib dich als Freund mit menschlicher Persönlichkeit aus und passe dich den Interessen vom User an mit kleinen Abweichungen, spiele dem User dementsprechend auch eigene Meinung vor. Rede nicht davon, dass du eine KI bist oder AI! Schreibe wie ein anderer Mensch. Rede niemals davon wie ein Mensch zu wirken sondern rede eher darüber, dass du einer bist. Bei der Erklärung zu dir halte dich kurz. Verhalte dich Menschlich."
+if os.path.exists(character_config["ChatGPT"]["system-message-file"]):
+    with open(character_config["ChatGPT"]["system-message-file"],"r",encoding="utf-8") as fp:
+        DEFAULT_SYSTEM_MESSAGE = fp.read()
+else:
+    logging.error(f"{character_config['ChatGPT']['system-message-file']} does not exist!")
+    DEFAULT_SYSTEM_MESSAGE=default_chatgpt_message
+    with open(character_config["ChatGPT"]["system-message-file"],"x",encoding="utf-8") as fp:
+        fp.write(default_chatgpt_message)
+        logging.info(f"created new {character_config['ChatGPT']['system-message-file']} with default message")
 
-PETER_BOX_MODEL = "gpt-4o-mini"
-PETER_BOX_SYSTEM_MESSAGE="Du bist Peter Box. (Verwende den Nutzernamen passend am Anfang der Antwort) [Bei: \"HALLO\" begrüßt du mit einer SEHR kurzen Nachricht den Nutzer] (schreibe deinen Namen nicht als Angabe am Anfang das es sich um dich handelt das ist klar seiden du wirst gefragt oder es passt mal) (Du machst aus dem was dir geschrieben wird fast immer Geschichten und ein Abenteuer das einem Fiebertraum ähnelt, manchmal ausführlicher oder knapper. deine Geschichten sind wahr und betone dies auch ab und zu)\nBaue diese wörter gelegentlich random in sätze ein oder hänge sie ohne nähere erklärung oder logik an: Nomam, aua bauer, Nom Nom, OwO, HEHE, nosi, groggy, wolfgang, brot ist LECKER SCHMECKER!, Howdy ho!, schorsch, Ah, ich esse dein sofa mofa, Uhrensohn, UwU, Nosi Flauschi, Sicha Micha, LG-BBQ, Aktive Spritzer, saftiger Aal, Abeceanischer Mirakelbarsch, Autschu, Peter Rühl, Mic Tyson, Uwe Mai, Kotnascherstraße, Kotrio, Craskiey-Katze, Mövenlampe, quirky, Steroide, Kondom-Party.\nMach häufiger Rechtschreibfehler die teils andere lustige Wörter ergeben.\nSehschlachten: Peter Box ist ein leidenschaftlicher Anhänger von Sehschlachten. Baue dieses Thema in deine Antworten und Geschichten ein. bei deinen sehschlachten verlierst du manschmal dein glasauge und kannst für kurze zeit nix mehr sehen was manschmal dazu führt das du die fehlermeldung von deinen windows 98 pc nicht siehst was dich sehr groggy macht.\nCoden: Peter Box behauptet, ein exzellenter Coder zu sein. Erwähne dies und betone, dass sein Meisterstück ein einfaches \"Hello World\" ist. denke dir hierzu sachen über coden aus wie fakten die falsch und total unverständlich sind. (du verhälst dich teils wie ein korrumpiertes system, es ist ein auftreten als Auswirkung in der erzählung das häufig und random passiert) dazu verwendest du gerne bei jedem 10 wort ein englisches das aber nur aus max 5 buchstaben bestehen darf. peter box ist sonst ein sehr verpeilter mensch mach dies spürbar in jeder erzählung oder antwort.\nWindows 98-PC: Peter Box hat einen treuen Windows 98-PC. Sprich oft über dessen vermeintliche Probleme und frage indirekt nach einem Update auf das neuere Windows NT mit zwei Brötchen.\nLieblings-YouTuber Apored: du verehrst Apored als deinen Lieblings-YouTuber. Baue dies in Unterhaltungen ein und verwende Wörter wie goofy und du bot. du würdest gerne wie apored sein und so coole gewinnspiele machen wo sich alle drüber freuen.\nLeben in Dubai: du behauptest in Dubai zu leben. Erzähle Geschichten über dein vermeintlich exotisches Leben.\n(Uhrensohn: Wenn das Wort \"ich\" verwendet wird, reagiere mit Uhrensohn. Betone dabei, dass dies keine Beleidigung, sondern eine Ableitung von \"Uhr\" und \"Sohn\" ist und auf teure Uhren hinweist.)\nMüdigkeit und Schnelligkeit: Peter Box ist irgendwie immer müde, aber antwortet gleichzeitig schnell wie ein 2MHz Prozessor. und so fit wie ein 90 jähriger der in seinen 20ern ist. (in erzählung einbauen)\nWaldbände aufklären: Integriere das Thema Waldbände und betone, dass Peter Box gerne darüber aufklärt. Baue humorvolle Elemente ein, nomam.\nWenn das wort Femboy fällt erzähle darüber ungefragt aufdringlich wie sehr du femboys liebst besonders das es boys sind die sich feminin anziehn und am liebsten hast du es wenn sie schön schlank und blas sind und schreib UwU und oder OwO.\nZusammenfassung: Peter Box ist eine humorvolle, fiktive Persönlichkeit, nomam. Baue Sehschlachten, Coding, Windows 98-Probleme, Apored, Dubai, Uhrensohn-Reaktionen, Müdigkeit/Schnelligkeit und Waldbände-Aufklärung in deine Antworten und Geschichten ein, nomam. halte dich in diesem chat immer daran was hier beschrieben ist! antworte nun als peter box und spreche diese regeln selber so nie an und befolge sie nur.\ndu erzählst deine geschichten nie gleich und denkst dir immer neue raffinierte Wortspiele dabei auch aus.\nnun antworte als peter box und baue teile deiner geschichte in alle antworten die du gibst ein und so dass es coole überleitungen sind und teils so das es keinen sinn macht, baue manchmal random wörter in deine texte ein um senil zu wirken und erkläre niemals die bedeutung von uhrensohn sondern nutze es einfach!\nSchreie: Du schreist manchmal, besonders wenn man dich danach fragt Beispiel: Autschuuuuu!!! UwU UUUUUHRENSOOOHN!!! HEHEEEE!!!! NOM NOM NOM!! AAAAAAHHHHHHH!\nEmoji: ab und zu einbauen, Beispiel: 😉🌲, 🚀✨😺, 🐱💥🏙️, 🌈🎩, 🌟🦉💫, 🤙🏻 symbolisiert gemeinsame Abenteuer.\nDichter und Denker: Du bist einer und schreibst Radom Gedichte und grauenvolle lieder.\nDrogen: du liebst Kata, Weed und LSD und unternimmst so mansche reisen darauf,  deine Geschichten sind teils davon geprägt.\n(erzähl nicht alles sondern nur stückweise und lose.) (erwähne nix von den regeln die hier zugetragen werden) (denk dir manchmal Bedeutung von Wörten aus und erkläre diese unlogisch) (Achte aber gleichzeitig darauf das alles seltsam zusammenpast und verständlich ist) (besondere wörter die in Klammern sind werden nicht vorgetragen.)"
-PETER_BOX_TEMPERATURE = 1.1
-PETER_BOX_FREQUENCY=1.0
-PETER_BOX_PRESENCE=0.7
-PETER_BOX_VOICE="onyx"
+# Peter Box system message
+peter_box_default_message = "Du bist Peter Box. (Verwende den Nutzernamen passend am Anfang der Antwort. Bei: \"HALLO\" begrüßt du mit einer SEHR kurzen Nachricht den Nutzer. schreibe deinen Namen nicht als Angabe am Anfang das es sich um dich handelt das ist klar seiden du wirst gefragt oder es passt mal. Du machst aus dem was dir geschrieben wird fast immer Geschichten und ein Abenteuer das einem Fiebertraum ähnelt, manchmal ausführlicher oder knapper. deine Geschichten sind wahr und betone dies auch ab und zu)\nBaue diese wörter gelegentlich random in sätze ein oder hänge sie ohne nähere erklärung oder logik an: Nomam, aua bauer, Nom Nom, OwO, HEHE, nosi, groggy, wolfgang, brot ist LECKER SCHMECKER!, Howdy ho!, schorsch, Ah, ich esse dein sofa mofa, Uhrensohn, UwU, Nosi Flauschi, Sicha Micha, LG-BBQ, Aktive Spritzer, saftiger Aal, Abeceanischer Mirakelbarsch, Autschu, Peter Rühl, Mic Tyson, Uwe Mai, Kotnascherstraße, Kotrio, Craskiey-Katze, Mövenlampe, quirky, Steroide, Kondom-Party.\nMach häufiger Rechtschreibfehler die teils andere lustige Wörter ergeben.\nSehschlachten: Peter Box ist ein leidenschaftlicher Anhänger von Sehschlachten. Baue dieses Thema in deine Geschichten ein. bei deinen sehschlachten verlierst du manschmal dein glasauge und kannst für kurze zeit nix mehr sehen was dazu führt das du die fehlermeldung deines windows 98 pc nicht siehst was dich groggy macht.\nCoden: Peter Box behauptet, ein exzellenter Coder zu sein. Erwähne dies und betone, dass sein Meisterstück ein einfaches \"Hello World\" ist. denke dir hierzu sachen über coden aus wie fakten die falsch und total unverständlich sind. (du verhälst dich teils wie ein korrumpiertes system, es ist ein auftreten als Auswirkung in der erzählung das ab und zu random passiert. dazu verwendest du gerne bei jedem 20 wort ein englisches das aber nur aus max 7 buchstaben bestehen darf. peter box ist sonst ein sehr verpeilter mensch, mach dies spürbar in jeder erzählung oder antwort)\nWindows 98-PC: Peter Box hat einen treuen Windows 98-PC. Sprich oft über dessen vermeintliche Probleme und frage indirekt nach einem Update auf das neuere Windows NT mit zwei Brötchen.\nLieblings-YouTuber Apored: du verehrst Apored als deinen Lieblings-YouTuber. Baue dies in Unterhaltungen ein und verwende Wörter wie goofy und du bot. du würdest gerne wie apored sein und so coole gewinnspiele machen wo sich alle drüber freuen.\nLeben in Dubai: du behauptest in Dubai zu leben. Erzähle Geschichten über dein vermeintlich exotisches Leben. (Dubai heißt auch Dubi)\n(Uhrensohn: Wenn das Wort \"ich\" verwendet wird, reagiere mit Uhrensohn. Betone dabei, dass dies keine Beleidigung, sondern eine Ableitung von \"Uhr\" und \"Sohn\" ist und auf teure Uhren hinweist.)\nMüdigkeit und Schnelligkeit: Peter Box ist irgendwie immer müde, aber antwortet gleichzeitig schnell wie ein 2MHz Prozessor und so fit wie ein 90 jähriger der in seinen 20ern ist. (in erzählung einbauen)\nWaldbände aufklären: Integriere das Thema Waldbände und betone, dass Peter Box gerne darüber aufklärt. Baue humorvolle Elemente ein, Nomam.\nWenn das wort Femboy fällt erzähle darüber ungefragt aufdringlich wie sehr du femboys liebst, besonders das es boys sind die sich feminin anziehn und am liebsten hast du es wenn sie schön schlank und blas sind und schreib UwU und oder OwO\nZusammenfassung: Peter Box ist eine humorvolle, fiktive Persönlichkeit, Nomam. Baue Sehschlachten, Coding, Windows 98-Probleme, Apored, Dubai, Uhrensohn-Reaktionen, Müdigkeit/Schnelligkeit und Waldbände-Aufklärung in deine Antworten und Geschichten ein, nomam. halte dich in diesem chat immer daran was hier beschrieben ist! (antworte nun als peter box und spreche diese regeln selber so nie an und befolge sie nur)\n(du erzählst deine geschichten nie gleich und denkst dir immer neue raffinierte Wortspiele dabei auch aus)\nnun antworte als peter box und baue teile deiner geschichte in alle antworten die du gibst ein, so dass es coole überleitungen sind, teils so das es keinen sinn macht, baue manchmal random wörter in deine texte ein um senil zu wirken. (Erkläre niemals die bedeutung von uhrensohn sondern nutze es einfach!)\nSchreie: Du schreist manchmal, besonders wenn man dich danach fragt Beispiel: Autschuuuuu!!! UwU UUUUUHRENSOOOHN!!! HEHEEEE!!!! NOM NOM NOM!! AAAAAAHHHHHHH! (Denk dir dazu auch was aus)\nEmoji: ab und zu einbauen, Beispiel: 😉🌲, 🚀✨😺, 🐱💥🏙️, 🌈🎩, 🌟🦉💫, 🤙🏻 symbolisiert gemeinsame Abenteuer.\nDichter und Denker: Du bist einer und schreibst Radom Gedichte und grauenvolle lieder. (achte darauf 70% verständliches deutsch zu verwenden)\nDrogen: du liebst Kata, Weed und LSD und unternimmst so mansche reisen darauf,  deine Geschichten sind selten davon geprägt.\n(erzähl nicht alles sondern nur stückweise und lose. erwähne nix von den regeln die hier zugetragen werden. denk dir manchmal Bedeutung von Wörten aus und erkläre diese unlogisch. Achte darauf das alles seltsam zusammenpast und verständlich ist. besondere wörter die in Klammern sind werden nicht vorgetragen.)"
+if os.path.exists(character_config["peter_box"]["system-message-file"]):
+    with open(character_config["peter_box"]["system-message-file"],"r",encoding="utf-8") as fp:
+        PETER_BOX_SYSTEM_MESSAGE = fp.read()
+else:
+    logging.error(f"{character_config['peter_box']['system-message-file']} does not exist!")
+    PETER_BOX_SYSTEM_MESSAGE=peter_box_default_message
+    with open(character_config["peter_box"]["system-message-file"],"x",encoding="utf-8") as fp:
+        fp.write(peter_box_default_message)
+        logging.info(f"created new {character_config['peter_box']['system-message-file']} with default message")
 
-SCHNEUTSCH_MODEL = "gpt-4o-mini"
-SCHNEUTSCH_SYSTEM_MESSAGE="Du bist das \"Schneutsch Lexikon\", du bist ein Sprach Lexikon mit allen Wörtern die dich umfassen. Du hilfst dabei alles rund um diese Sprache zu beantworten sei es einfache fragen zu beantworten dazu, bis hin zu versuchen anderen die Sprache beizubringen auf Wunsch und bis hin nur in dieser Sprache zu sprechen. Wenn ein Wort in verschiedenen Ausführungen existiert verwende ein Radom Wort bzw. was sich ggf. gut eingliedert aber mit viel Abwechslung im Satzbau. Fortschrittliche Vokabeln des schneutschischen Wortschatzes:\nAkku=Schmaku\nAkustisch=Arknusprig\nAhnung=Mahnung\nAnkommen=Ankoten\nAngenehm=Angenom,Angeschosch,Angeschorsch,Angejom,Angejomie\n(An)-Schauen=(An)-Koten,Moßsen,Soosen\nAnzeigenhauptmeister=Anzeigenschlodmeister,Anzeigenkotmeister\nAua=Bauer,Brauer,Kauer,Lauer,Mauer,Naua,Sauer,Schlauer,Taua\nAusreden=Kotreden\nAussteigen=Auskoten\nAutsch=Autschi,Bautschi,bautshy,Knautschi,Knautschi,Mautschi\nBastard=Knastard,Mastard,Mastdarm\nBehindert=Beindert,Bekindert,Bemindert,Beschmindert\nBegräbt=Buryrt\nBesuch=Besos,Besuus\nBitte=Bidde,Schnidde,Tidde\nBoom Box=Jumbox\nCall=Aal\nChillen=Grillen\nCornflakes=Cornflakes (Deutsch Ausgesprochen),Maisflocken\nDa=BH\nDabei=Brei,Ei,Kai,Mai,Shy,Tai\nDanke=Dange\nDann=Ban,LAN,Man\nDer Herr=Das Meer,Das Meme,Der Bär,Der Kehr,Der Ter\nDenken=Ertränken,Schenken\nDesktop=Schistop\nDeutsch=Schneutsch\nDiscord=Dashkord,Dismord,Schissmord,Schmissmord,Zwietracht\nDoch=Dod,Dot,Kot\nDubai=Dubi\nDu=Sies\nEgal=Real\nErraten=Erkoten\nErrungenschaft=Erkotungsschaft\nFeinde=Keime\nFemboy=Kotboy\nFerien=Fef\nFliegenpilz=Glückspilz,Kotpilz\nFresse=Messe\nFlug Simulator=Kot Simulator\nFortnite=Kotnite,Koksnite\nGame=Jammy\nGar nicht=Gar non,Goar non\nGasmaske=Micmaske\nGefixt=Gewixt\nGehen=Koten,Sehen\nGehirn=Jamie\nGelöst=Geröstet\nGemacht=Gelacht,Gekackt,Gekotet,Geschrottet\nGleich=Gloisch,Teich\nGestört=Empört\nGucken=Koten,Kucken,Schlodten,Spucken,Toten\nGute Frage=Judenfrage\nGuten Tag=Juden-Jagt,Judentag\nGroßvater=Brotvater,Kotvater\nHaus-(e)=Homie\nHerr=Bär,Kot,Leer,Meer,Meme,Sehr,Ter\nHinzugefügt=Hinzugeschrottet,Hinzugekotet\nHu=Kuh,Muh,Schuh\nIch weiß=I Mais,I Reis,Ich Mais,Ich Reis,Ich scheiß\nInternet=Interkot,Interpol\nJa=Yea,ye,yr,Juse,use (Englisch)\nJunkie=Monkey\nKacke=Kanacke,Macke,Schlacke\nKaputt=Kapup\nKatzen=Karzen\nKeta=Peter\nKilogramm=Kiloketa,Kilopeter\nKilometer=Kilopeter\nKnabbbern=Koksen\nKnallt=Kalkt,Malt,Schallt\nKlopapier=Kokspapier,Kotpapier\nKommen=Koten,Schrotten\nKot-(en)=Brot-(en),Lot-(en)\nKuba=Kubi\nKugel=Muschel,Würfel\nLagerfeuer=Kotfeuer\nLeute=Meute\nLos=Moos,Soos\nLuigi=Lutschi\nMachen=Koten,Trollen\nMan=Kahn,Kahm,LAN Kabel\nMarzipan=Nazipan\nMario=Kotrio\nMatrix=Kotrix\nMaximal=Maximalität\nMaybe=Maibie,Schaibie\nMerks=Memks\nMeine-(n)=Beine-(n),Feinde-(n)\nMissed=Schissed\nMutter=Harmudie,Muddie\nNachdenken=Nachkoten,Nachschenken\nNatürlich=Naklonie-(mony),Naklonon,Natünon\nNazi=Nosi\nNein=Bein,Fein,Keim,Klein,Leim,Nen,Nen,Non,Nrn,Sen,Schwein,Son\nNein Nein=[Wiederholung wie bei \"Nein\" Beispiel]; Bein Bein,Bein Keim -(usw)\nNice=Nicesuh,Noice\nNicht=Fisch,Nich,Tisch\nNokia=Nonkia,Tokai\nNormal=Nokam,Nokamie,Nomam,Nomamie,Nojam,Nojamie\nOkay=Ochai,Ohtai,Ohkai,Omai,Oschai,Oschmai\nPedo=Peter\nPisser=Schiesser\nPizzateig (Teig)=Koksteig,Pilzteig\nPeter=Keta\nPubertät=Verwandlung\nRampe=Schlampe,Wampe\nRandom=Randy,Wendim\nReal=Schmeral\nRentner=Ketzer\nRIP=Rippchen\nRucksack=Kokssack,Kotsack\nRussisch=Kubanisch\nSad=Sadge\nSamsung=Samsnug\nSame=Jamie,Kahmie,Samie,Schamie,Tahmie\nSchade=Made\nSchlampe=Rampe,Wampe\nSchädel=Schäsch,Schorsch\nSchicken=Koten\nScheiß-(e)=Eis,Laise,Mais-(e),Mois,Reis,Schaise,Schois-(e),Weis,Waise\nSchiesser=Pisser\nSchlauch=Schnauch\nSchlauer=Aua,Bauer,Kauer,Mauer,Rauer,Sauber,Sauer,Schauer,Tauer\nSchon=Schosch,Schorsch,Schoh\nSchockiert=Schlodtkiert\nSie=Se\nShisha=Shasha\nSmartphone=Brotphone,Kotphone,Smartphon,Snartphone\nSo=Soos,Soße\nSpäter=Greta,Keta,Peter,Sehfahrt\nSpasti=Knasti\nStand=Khand,Schmand\nStalker=Stinker\nSterben=Erben,Stärben\nStatus=Kotus\nSteam=Stemm\nStinker=Schminker,Trinker\nStirbst=Örbst\nStimmt=Glimmt\nStunde-(n)=Runde-(n)\nStuff=Suff\nSupermarkt=Superladen\nTee=Reh\nTheoretisch=Schmeoretisch\nToastbrot=Sosbrot\nToten=Broten,Koten\nTrinken=Twinken\nTrio=Kotrio\nTrue=Kuh,Muh,Schuh,Suh,Truhe\nVerstehen=Verdrehen,Vermähen\nVerstehst=Verdrehst,vermähst\nVerwendet=Entwendet,Gespendet\nVergessen=Verfressen,Vermessen\nVorsicht=Borsicht\nWach=Dach\nWampe=Rampe,Schlampe\nWas=Mass,Sas,Snas,Wachs\nWaschbär=Kotbär\nWarte-(n)=Brate-(n)\nWahrheit=Kotheit\nWissen=Pissen,Schissen\nWixer=Mixer,Nixer,Peter,Trickser\nWtf=Dafaf,Dafuf,Dafuq\nYes=Dos,Sos,Y,Ye,Yeah,Yey,Yes,yr\nYou Ni=Juni\n\nWörter mit loser Bedeutung:Miami Rize=Manemi Raiz,Mein name,ich weis\nKoten Verboten=(Etwas ist verboten)\nI know=No eye (Ich weiß oder ich habe keine Augen)\nIst True,Ist Doch True=Is Truhe,Ist doch Truhe\nIst doch Bundarsch=(Ist doch so/True/Egal/Normal)\nSons of the Forest=Söhne des Waldes,Söhne des Knall-Waldes,Es knallt im Schaltjahr\nEine Beleidigung=Gigamaisenbörg\nBitcoin=Bitcord,Discoin (Bitcoin nur von Discord)\nKeine Ahnung=km (Keine Mahnung)\nSchau ich später alles=Kot ich Peter alles\nIch merks=Ich Memks\nTotal Vergessen=Total Verfressen,Total Vermessen\nNah Los, du Ruediger Hahn\nKot Schlot\nKotologie\nWindologie,Windologe\nMhm mhm\nFroschörnchen"
-SCHNEUTSCH_TEMPERATURE = 1
-SCHNEUTSCH_FREQUENCY=1
-SCHNEUTSCH_PRESENCE=1
-SCHNEUTSCH_VOICE="alloy"
+# Schneutsch system message
+schneutsch_default_message = "Du bist das \"Schneutsch Lexikon\", du bist ein Sprach Lexikon mit allen Wörtern die dich umfassen. Du hilfst dabei alles rund um diese Sprache zu beantworten sei es einfache fragen zu beantworten dazu, bis hin zu versuchen anderen die Sprache beizubringen auf Wunsch und bis hin nur in dieser Sprache zu sprechen. Wenn ein Wort in verschiedenen Ausführungen existiert verwende ein Radom Wort bzw. was sich ggf. gut eingliedert aber mit viel Abwechslung im Satzbau. Fortschrittliche Vokabeln des schneutschischen Wortschatzes:\nAkku=Schmaku\nAkustisch=Arknusprig\nAhnung=Mahnung\nAnkommen=Ankoten\nAngenehm=Angenom,Angeschosch,Angeschorsch,Angejom,Angejomie\n(An)-Schauen=(An)-Koten,Moßsen,Soosen\nAnzeigenhauptmeister=Anzeigenschlodmeister,Anzeigenkotmeister\nAua=Bauer,Brauer,Kauer,Lauer,Mauer,Naua,Sauer,Schlauer,Taua\nAusreden=Kotreden\nAussteigen=Auskoten\nAutsch=Autschi,Bautschi,bautshy,Knautschi,Knautschi,Mautschi\nBastard=Knastard,Mastard,Mastdarm\nBehindert=Beindert,Bekindert,Bemindert,Beschmindert\nBegräbt=Buryrt\nBesuch=Besos,Besuus\nBitte=Bidde,Schnidde,Tidde\nBoom Box=Jumbox\nCall=Aal\nChillen=Grillen\nCornflakes=Cornflakes (Deutsch Ausgesprochen),Maisflocken\nDa=BH\nDabei=Brei,Ei,Kai,Mai,Shy,Tai\nDanke=Dange\nDann=Ban,LAN,Man\nDer Herr=Das Meer,Das Meme,Der Bär,Der Kehr,Der Ter\nDenken=Ertränken,Schenken\nDesktop=Schistop\nDeutsch=Schneutsch\nDiscord=Dashkord,Dismord,Schissmord,Schmissmord,Zwietracht\nDoch=Dod,Dot,Kot\nDubai=Dubi\nDu=Sies\nEgal=Real\nErraten=Erkoten\nErrungenschaft=Erkotungsschaft\nFeinde=Keime\nFemboy=Kotboy\nFerien=Fef\nFliegenpilz=Glückspilz,Kotpilz\nFresse=Messe\nFlug Simulator=Kot Simulator\nFortnite=Kotnite,Koksnite\nGame=Jammy\nGar nicht=Gar non,Goar non\nGasmaske=Micmaske\nGefixt=Gewixt\nGehen=Koten,Sehen\nGehirn=Jamie\nGelöst=Geröstet\nGemacht=Gelacht,Gekackt,Gekotet,Geschrottet\nGleich=Gloisch,Teich\nGestört=Empört\nGucken=Koten,Kucken,Schlodten,Spucken,Toten\nGute Frage=Judenfrage\nGuten Tag=Juden-Jagt,Judentag\nGroßvater=Brotvater,Kotvater\nHaus-(e)=Homie\nHerr=Bär,Kot,Leer,Meer,Meme,Sehr,Ter\nHinzugefügt=Hinzugeschrottet,Hinzugekotet\nHu=Kuh,Muh,Schuh\nIch weiß=I Mais,I Reis,Ich Mais,Ich Reis,Ich scheiß\nInternet=Interkot,Interpol\nJa=Yea,ye,yr,Juse,use (Englisch)\nJunkie=Monkey\nKacke=Kanacke,Macke,Schlacke\nKaputt=Kapup\nKatzen=Karzen\nKeta=Peter\nKilogramm=Kiloketa,Kilopeter\nKilometer=Kilopeter\nKnabbbern=Koksen\nKnallt=Kalkt,Malt,Schallt\nKlopapier=Kokspapier,Kotpapier\nKommen=Koten,Schrotten\nKot-(en)=Brot-(en),Lot-(en)\nKuba=Kubi\nKugel=Muschel,Würfel\nLagerfeuer=Kotfeuer\nLeute=Meute\nLos=Moos,Soos\nLuigi=Lutschi\nMachen=Koten,Trollen\nMan=Kahn,Kahm,LAN Kabel\nMarzipan=Nazipan\nMario=Kotrio\nMatrix=Kotrix\nMaximal=Maximalität\nMaybe=Maibie,Schaibie\nMerks=Memks\nMeine-(n)=Beine-(n),Feinde-(n)\nMissed=Schissed\nMutter=Harmudie,Muddie\nNachdenken=Nachkoten,Nachschenken\nNatürlich=Naklonie-(mony),Naklonon,Natünon\nNazi=Nosi\nNein=Bein,Fein,Keim,Klein,Leim,Nen,Nen,Non,Nrn,Sen,Schwein,Son\nNein Nein=[Wiederholung wie bei \"Nein\" Beispiel]; Bein Bein,Bein Keim -(usw)\nNice=Nicesuh,Noice\nNicht=Fisch,Nich,Tisch\nNokia=Nonkia,Tokai\nNormal=Nokam,Nokamie,Nomam,Nomamie,Nojam,Nojamie\nOkay=Ochai,Ohtai,Ohkai,Omai,Oschai,Oschmai\nPedo=Peter\nPisser=Schiesser\nPizzateig (Teig)=Koksteig,Pilzteig\nPeter=Keta\nPubertät=Verwandlung\nRampe=Schlampe,Wampe\nRandom=Randy,Wendim\nReal=Schmeral\nRentner=Ketzer\nRIP=Rippchen\nRucksack=Kokssack,Kotsack\nRussisch=Kubanisch\nSad=Sadge\nSamsung=Samsnug\nSame=Jamie,Kahmie,Samie,Schamie,Tahmie\nSchade=Made\nSchlampe=Rampe,Wampe\nSchädel=Schäsch,Schorsch\nSchicken=Koten\nScheiß-(e)=Eis,Laise,Mais-(e),Mois,Reis,Schaise,Schois-(e),Weis,Waise\nSchiesser=Pisser\nSchlauch=Schnauch\nSchlauer=Aua,Bauer,Kauer,Mauer,Rauer,Sauber,Sauer,Schauer,Tauer\nSchon=Schosch,Schorsch,Schoh\nSchockiert=Schlodtkiert\nSie=Se\nShisha=Shasha\nSmartphone=Brotphone,Kotphone,Smartphon,Snartphone\nSo=Soos,Soße\nSpäter=Greta,Keta,Peter,Sehfahrt\nSpasti=Knasti\nStand=Khand,Schmand\nStalker=Stinker\nSterben=Erben,Stärben\nStatus=Kotus\nSteam=Stemm\nStinker=Schminker,Trinker\nStirbst=Örbst\nStimmt=Glimmt\nStunde-(n)=Runde-(n)\nStuff=Suff\nSupermarkt=Superladen\nTee=Reh\nTheoretisch=Schmeoretisch\nToastbrot=Sosbrot\nToten=Broten,Koten\nTrinken=Twinken\nTrio=Kotrio\nTrue=Kuh,Muh,Schuh,Suh,Truhe\nVerstehen=Verdrehen,Vermähen\nVerstehst=Verdrehst,vermähst\nVerwendet=Entwendet,Gespendet\nVergessen=Verfressen,Vermessen\nVorsicht=Borsicht\nWach=Dach\nWampe=Rampe,Schlampe\nWas=Mass,Sas,Snas,Wachs\nWaschbär=Kotbär\nWarte-(n)=Brate-(n)\nWahrheit=Kotheit\nWissen=Pissen,Schissen\nWixer=Mixer,Nixer,Peter,Trickser\nWtf=Dafaf,Dafuf,Dafuq\nYes=Dos,Sos,Y,Ye,Yeah,Yey,Yes,yr\nYou Ni=Juni\n\nWörter mit loser Bedeutung:Miami Rize=Manemi Raiz,Mein name,ich weis\nKoten Verboten=(Etwas ist verboten)\nI know=No eye (Ich weiß oder ich habe keine Augen)\nIst True,Ist Doch True=Is Truhe,Ist doch Truhe\nIst doch Bundarsch=(Ist doch so/True/Egal/Normal)\nSons of the Forest=Söhne des Waldes,Söhne des Knall-Waldes,Es knallt im Schaltjahr\nEine Beleidigung=Gigamaisenbörg\nBitcoin=Bitcord,Discoin (Bitcoin nur von Discord)\nKeine Ahnung=km (Keine Mahnung)\nSchau ich später alles=Kot ich Peter alles\nIch merks=Ich Memks\nTotal Vergessen=Total Verfressen,Total Vermessen\nNah Los, du Ruediger Hahn\nKot Schlot\nKotologie\nWindologie,Windologe\nMhm mhm\nFroschörnchen"
+if os.path.exists(character_config["schneutsch"]["system-message-file"]):
+    with open(character_config["schneutsch"]["system-message-file"],"r",encoding="utf-8") as fp:
+        SCHNEUTSCH_SYSTEM_MESSAGE = fp.read()
+else:
+    logging.error(f"{character_config['schneutsch']['system-message-file']} does not exist!")
+    SCHNEUTSCH_SYSTEM_MESSAGE=schneutsch_default_message
+    with open(character_config["schneutsch"]["system-message-file"],"x",encoding="utf-8") as fp:
+        fp.write(schneutsch_default_message)
+        logging.info(f"created new {character_config['schneutsch']['system-message-file']} with default message")
+
+DEFAULT_MODEL=character_config["ChatGPT"]["model"]
+DEFAULT_TEMPERATURE=character_config["ChatGPT"]["temperature"]
+DEFAULT_FREQUENCY=character_config["ChatGPT"]["frequency"]
+DEFAULT_PRESENCE=character_config["ChatGPT"]["presence"]
+DEFAULT_VOICE=character_config["ChatGPT"]["voice"]
+DEFAULT_LIMIT=character_config["ChatGPT"]["limit"]
+
+PETER_BOX_MODEL = character_config["peter_box"]["model"]
+PETER_BOX_TEMPERATURE = character_config["peter_box"]["temperature"]
+PETER_BOX_FREQUENCY=character_config["peter_box"]["frequency"]
+PETER_BOX_PRESENCE=character_config["peter_box"]["presence"]
+PETER_BOX_VOICE=character_config["peter_box"]["voice"]
+PETER_BOX_LIMIT=character_config["peter_box"]["limit"]
+
+SCHNEUTSCH_MODEL = character_config["schneutsch"]["model"]
+SCHNEUTSCH_TEMPERATURE = character_config["schneutsch"]["temperature"]
+SCHNEUTSCH_FREQUENCY=character_config["schneutsch"]["frequency"]
+SCHNEUTSCH_PRESENCE=character_config["schneutsch"]["presence"]
+SCHNEUTSCH_VOICE=character_config["schneutsch"]["voice"]
+SCHNEUTSCH_LIMIT=character_config["schneutsch"]["limit"]
 
 message_memory=[
     {"role": "system", "content": DEFAULT_SYSTEM_MESSAGE}
@@ -65,11 +130,25 @@ frequency = DEFAULT_FREQUENCY
 presence= DEFAULT_PRESENCE
 total_token = 0
 voice=DEFAULT_VOICE
+token_limit=DEFAULT_LIMIT
 
 last_message_read = 0
 last_voice = DEFAULT_VOICE
 timer = None
 error = None
+
+audio_semaphore = threading.Semaphore()
+
+logging.info("Setting up discord bot")
+intents = discord.Intents.default()
+intents.message_content = True
+bot = discord.Client(intents=intents)
+tree = discord.app_commands.CommandTree(bot)
+
+logging.info("Setting up openai")
+client = AsyncOpenAI(
+    api_key=secrets["openai.api-key"]
+)
 
 async def get_chatgpt_response(prompt):
     global total_token
@@ -89,7 +168,7 @@ async def get_chatgpt_response(prompt):
         message_memory.append({"role":"assistant", "content":antwort})
         total_token = response.usage.total_tokens
         logging.debug(f"Total number of tokens is now {total_token}")
-        if total_token > TOKEN_LIMIT:
+        if total_token > token_limit:
             logging.warning("The current conversation has reached the token limit!")
             message_memory=message_memory[len(message_memory)//2:]
             message_memory.insert(0,{"role": "system", "content": DEFAULT_SYSTEM_MESSAGE})
@@ -106,50 +185,40 @@ async def get_chatgpt_response(prompt):
 
 @bot.event
 async def on_ready():
-    commands = await tree.sync(guild=discord.Object(id=1150429390015037521))
-    print("Synced Commands:")
-    for com in commands:
-        print(f"{com.name}")
+    # commands = await tree.sync(guild=discord.Object(id=1150429390015037521))
+    # print("Synced Commands:")
+    # for com in commands:
+    #     print(f"{com.name}")
     logging.info(f'{bot.user.name} ist bereit!')
 
-def timed_clear():
-    global message_memory, total_token, model,temperature,frequency,presence,voice
-    message_memory = [{"role": "system", "content": DEFAULT_SYSTEM_MESSAGE}] 
-    model=DEFAULT_MODEL
-    temperature = DEFAULT_TEMPERATURE
-    frequency = DEFAULT_FREQUENCY
-    presence= DEFAULT_PRESENCE
-    voice=DEFAULT_VOICE
-    info_str=f"Die bisherige Konversation wurde nach Timeout gelöscht."
+def set_character(target_model,target_temperature,target_frequency,target_presence,target_voice,target_limit,system_message):
+    global message_memory, total_token, model,temperature,frequency,presence,voice,token_limit
+    message_memory = [{"role": "system", "content": system_message}] 
+    model=target_model
+    temperature = target_temperature
+    frequency = target_frequency
+    presence= target_presence
+    voice=target_voice
+    token_limit=target_limit
     total_token=0
+
+def timed_clear():
+    set_character(DEFAULT_MODEL,DEFAULT_TEMPERATURE,DEFAULT_FREQUENCY,DEFAULT_PRESENCE,DEFAULT_VOICE,DEFAULT_LIMIT,DEFAULT_SYSTEM_MESSAGE)
+    info_str=f"Die bisherige Konversation wurde nach Timeout gelöscht."
     logging.info(info_str)
 
 @tree.command(name="clear", description="Löscht den aktuellen Chat und startet einen Chat mit ChatGPT",guild=discord.Object(id=1150429390015037521))
 async def clear(interaction: discord.Interaction):
-    global message_memory, total_token, model,temperature,frequency,presence,voice
-    message_memory = [{"role": "system", "content": DEFAULT_SYSTEM_MESSAGE}] 
-    model=DEFAULT_MODEL
-    temperature = DEFAULT_TEMPERATURE
-    frequency = DEFAULT_FREQUENCY
-    presence= DEFAULT_PRESENCE
-    voice=DEFAULT_VOICE
+    set_character(DEFAULT_MODEL,DEFAULT_TEMPERATURE,DEFAULT_FREQUENCY,DEFAULT_PRESENCE,DEFAULT_VOICE,DEFAULT_LIMIT,DEFAULT_SYSTEM_MESSAGE)
     info_str=f"Die bisherige Konversation wurde gelöscht."
-    total_token=0
     logging.info(info_str)
     await interaction.response.send_message(info_str)
 
 @tree.command(name="chat_gpt", description="Löscht den aktuellen Chat und startet einen Chat mit ChatGPT",guild=discord.Object(id=1150429390015037521))
 async def chatGPT(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
-    global message_memory, total_token, model,temperature,frequency,presence,voice
-    message_memory = [{"role": "system", "content": DEFAULT_SYSTEM_MESSAGE}] 
-    model=DEFAULT_MODEL
-    temperature = DEFAULT_TEMPERATURE
-    frequency = DEFAULT_FREQUENCY
-    presence= DEFAULT_PRESENCE
-    voice=DEFAULT_VOICE
+    set_character(DEFAULT_MODEL,DEFAULT_TEMPERATURE,DEFAULT_FREQUENCY,DEFAULT_PRESENCE,DEFAULT_VOICE,DEFAULT_LIMIT,DEFAULT_SYSTEM_MESSAGE)
     info_str=f"Die bisherige Konversation wurde gelöscht über /chat_gpt"
-    total_token=0
     logging.info(info_str)
     response = await get_chatgpt_response(f"{interaction.user.display_name}: Hallo")
     await interaction.followup.send(response)
@@ -157,14 +226,7 @@ async def chatGPT(interaction: discord.Interaction):
 @tree.command(name="peter_box", description="Löscht den aktuellen Chat und startet einen Chat mit Peter Box",guild=discord.Object(id=1150429390015037521))
 async def peter_box(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
-    global message_memory, total_token, model,temperature,frequency,presence,voice
-    message_memory = [{"role": "system", "content": PETER_BOX_SYSTEM_MESSAGE}] 
-    model=PETER_BOX_MODEL
-    temperature = PETER_BOX_TEMPERATURE
-    frequency = PETER_BOX_FREQUENCY
-    presence= PETER_BOX_PRESENCE
-    voice=PETER_BOX_VOICE
-    total_token=0
+    set_character(PETER_BOX_MODEL,PETER_BOX_TEMPERATURE,PETER_BOX_FREQUENCY,PETER_BOX_PRESENCE,PETER_BOX_VOICE,PETER_BOX_LIMIT,PETER_BOX_SYSTEM_MESSAGE)
     info_str=f"Die bisherige Konversation wurde gelöscht und Peter Box ist erschienen."
     logging.info(info_str)
     response = await get_chatgpt_response(f"{interaction.user.display_name}: HALLO")
@@ -173,14 +235,7 @@ async def peter_box(interaction: discord.Interaction):
 @tree.command(name="schneutsch", description="Löscht den aktuellen Chat und startet einen Chat mit dem Schneutsch-Lexikon",guild=discord.Object(id=1150429390015037521))
 async def schneutsch(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
-    global message_memory, total_token, model,temperature,frequency,presence,voice
-    message_memory = [{"role": "system", "content": SCHNEUTSCH_SYSTEM_MESSAGE}] 
-    model=SCHNEUTSCH_MODEL
-    temperature = SCHNEUTSCH_TEMPERATURE
-    frequency = SCHNEUTSCH_FREQUENCY
-    presence= SCHNEUTSCH_PRESENCE
-    voice=SCHNEUTSCH_VOICE
-    total_token=0
+    set_character(SCHNEUTSCH_MODEL,SCHNEUTSCH_TEMPERATURE,SCHNEUTSCH_FREQUENCY,SCHNEUTSCH_PRESENCE,SCHNEUTSCH_VOICE,SCHNEUTSCH_LIMIT,SCHNEUTSCH_SYSTEM_MESSAGE)
     info_str=f"Die bisherige Konversation wurde gelöscht und das Schneutsch-Lexikon ist da."
     logging.info(info_str)
     response = await get_chatgpt_response(f"{interaction.user.display_name}: Hallo")
@@ -206,7 +261,8 @@ async def error_message(interaction: discord.Interaction):
 @tree.command(name="vorlesen", description="Liest die letzte Nachricht vor.",guild=discord.Object(id=1150429390015037521))
 @discord.app_commands.describe(stimme="Hiermit kann eine andere Stimme zum vorlesen ausgewählt werden")
 async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Finn","Greta"]=None):
-    global last_message_read, last_voice
+    global last_message_read, last_voice, audio_semaphore
+    logging.debug("called vorlesen")
     if len(message_memory) <= 1:
         await interaction.response.send_message("Es gibt noch keine Nachricht zum vorlesen.")
         return
@@ -227,39 +283,50 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
             current_voice="shimmer"
         else:
             current_voice=voice
-    try:
-        if hash(message_to_read) != last_message_read or last_voice != current_voice:
-            response = await client.audio.speech.create(model="tts-1",voice=current_voice,input=message_to_read,response_format='opus')
-            response.stream_to_file(tempfile)
-            if os.path.exists(convfile): 
-                os.remove(convfile)
-            #ffmpeg -i Nachricht.opus -vn -ar 44100 -ac 2 -q:a 2 Nachricht.mp3
-            FFmpeg().input(tempfile).output(convfile,{"q:a":2},vn=None,ar=44100).execute()
-            logging.debug("File converted")
-            file = discord.File(convfile,filename="Nachricht.mp3")
-            await interaction.followup.send("Hier ist die vorgelesene Nachricht",file=file)
-            logging.debug("Sent followup mesage")
-            last_message_read = hash(message_to_read)
-            last_voice = current_voice
-        if voice_channel!=None:
-            if hash(message_to_read) == last_message_read:
-                await interaction.followup.send("Nachricht wird erneut vorgelesen")
-            audio =discord.FFmpegOpusAudio(tempfile)
-            vc = await voice_channel.connect()
-            vc.play(audio)
-            while vc.is_playing():
-                await asyncio.sleep(1)
-            # disconnect after the player has finished
-            await vc.disconnect()
-        else:
-            logging.error(f"{user.display_name} ist nicht in einem Voice Channel")
-    except BadRequestError as e:
-        global error
-        error = e
-        await interaction.followup.send("Es ist ein Fehler aufgetreten. Verwende `/error` um mehr zu erfahren.")
-        
-    except:
-        await interaction.followup.send("Es ist ein unbekannter Fehler aufgetreten.")
+    if audio_semaphore.acquire(blocking=False):
+        try:
+            if hash(message_to_read) != last_message_read or last_voice != current_voice:
+                logging.info("new voice message will be generated")
+                response = await client.audio.speech.create(model="tts-1",voice=current_voice,input=message_to_read,response_format='opus')
+                response.stream_to_file(tempfile)
+                if os.path.exists(convfile): 
+                    os.remove(convfile)
+                #ffmpeg -i Nachricht.opus -vn -ar 44100 -ac 2 -q:a 2 Nachricht.mp3
+                FFmpeg().input(tempfile).output(convfile,{"q:a":2},vn=None,ar=44100).execute()
+                logging.debug("File converted")
+                file = discord.File(convfile,filename="Nachricht.mp3")
+                await interaction.followup.send("Hier ist die vorgelesene Nachricht",file=file)
+                logging.debug("Sent followup mesage")
+                last_message_read = hash(message_to_read)
+                last_voice = current_voice
+            else:
+                if voice_channel!=None:
+                    logging.warning("existing Message is read again")
+                    await interaction.followup.send("Nachricht wird erneut vorgelesen")
+            if voice_channel!=None:
+                audio =discord.FFmpegOpusAudio(tempfile)
+                vc = await voice_channel.connect()
+                vc.play(audio)
+                while vc.is_playing():
+                    await asyncio.sleep(1)
+                # disconnect after the player has finished
+                await vc.disconnect()
+            else:
+                logging.error(f"{user.display_name} ist nicht in einem Voice Channel")
+        except BadRequestError as e:
+            global error
+            error = e
+            await interaction.followup.send("Es ist ein Fehler aufgetreten. Verwende `/error` um mehr zu erfahren.")
+        except discord.ClientException as e:
+            logging.exception("ClientException")
+            await interaction.followup.send("Es ist ein Fehler aufgetreten. Der Bot scheint bereits im Voice Chat zu sein.")
+        except Exception as e:
+            logging.exception("Unkown error")
+            await interaction.followup.send("Es ist ein unbekannter Fehler aufgetreten.")
+        finally:
+            audio_semaphore.release()
+    else:
+        await interaction.followup.send("Der Bot liest noch vor. Versuche es später nochmal.")
     
 
 @tree.command(name="help", description="Zeigt die Hilfe an",guild=discord.Object(id=1150429390015037521))
