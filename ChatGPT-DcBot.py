@@ -295,7 +295,10 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
     message_to_read = message_memory[-1]['content']
     await interaction.response.defer(thinking=True)
     user = interaction.user
-    voice_channel = user.voice.channel
+    if user.voice:
+        voice_channel = user.voice.channel
+    else:
+        voice_channel = None
     tempfile = "temp.opus"
     convfile = "temp.mp3"
     if stimme is None:
