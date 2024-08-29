@@ -6,6 +6,7 @@ import logging
 import threading
 import sys
 import asyncio,os
+import string
 from typing import Literal
 from ffmpeg import FFmpeg
 
@@ -149,6 +150,31 @@ logging.info("Setting up openai")
 client = AsyncOpenAI(
     api_key=secrets["openai.api-key"]
 )
+
+
+def format_filename(s):
+    """Take a string and return a valid filename constructed from the string.
+Uses a whitelist approach: any characters not present in valid_chars are
+removed. Also spaces are replaced with underscores.
+"""
+    valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
+    filename = ''.join(c for c in s if c in valid_chars)
+    return filename
+
+async def get_chatgpt_heading(text:str):
+    try:
+        response = await client.chat.completions.create(model="gpt-4o-mini",messages=[
+            {"role":"system","content":"Gib dem folgenenden Text eine kurze passende Überschrift mit maximal 43 Buchstaben."},
+            {"role":"user","content":text},
+        ])
+        logging.debug(f" Heading hat {response.usage.completion_tokens} Tokens")
+        antwort=response.choices[0].message.content
+        logging.debug(f"Heading für Text ist: {antwort}")
+        filename = format_filename(antwort)+".mp3"
+        logging.debug(f"Filename = {filename}")
+        return filename
+    except:
+        return "Nachricht.mp3"
 
 async def get_chatgpt_response(prompt):
     global total_token
@@ -294,7 +320,8 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
                 #ffmpeg -i Nachricht.opus -vn -ar 44100 -ac 2 -q:a 2 Nachricht.mp3
                 FFmpeg().input(tempfile).output(convfile,{"q:a":2},vn=None,ar=44100).execute()
                 logging.debug("File converted")
-                file = discord.File(convfile,filename="Nachricht.mp3")
+                filename = await get_chatgpt_heading(message_to_read)
+                file = discord.File(convfile,filename=filename)
                 await interaction.followup.send("Hier ist die vorgelesene Nachricht",file=file)
                 logging.debug("Sent followup mesage")
                 last_message_read = hash(message_to_read)
@@ -307,7 +334,7 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
                 audio =discord.FFmpegOpusAudio(tempfile)
                 vc = await voice_channel.connect()
                 vc.play(audio)
-                while vc.is_playing():
+                while vc.is_playing() and vc.is_connected():
                     await asyncio.sleep(1)
                 # disconnect after the player has finished
                 await vc.disconnect()
