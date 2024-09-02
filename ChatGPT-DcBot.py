@@ -244,10 +244,10 @@ async def get_chatgpt_response(prompt):
 
 @bot.event
 async def on_ready():
-    commands = await tree.sync(guild=discord.Object(id=1150429390015037521))
-    print("Synced Commands:")
-    for com in commands:
-        print(f"{com.name}")
+    # commands = await tree.sync(guild=discord.Object(id=1150429390015037521))
+    # print("Synced Commands:")
+    # for com in commands:
+    #     print(f"{com.name}")
     logging.info(f'{bot.user.name} ist bereit!')
 
 def set_character(target_model,target_temperature,target_frequency,target_presence,target_voice,target_limit,system_message):
