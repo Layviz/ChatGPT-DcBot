@@ -50,6 +50,15 @@ character_config = {
         "presence":1.0,
         "voice":"alloy",
         "limit":60000
+    },
+    "queerokratia":{
+        "system-message-file":"queerokratia.txt",
+        "model":"gpt-4o-mini",
+        "temperature":1.0,
+        "frequency":1.0,
+        "presence":1.0,
+        "voice":"alloy",
+        "limit":60000
     }
 }
 
@@ -59,7 +68,8 @@ if os.path.exists("config.json"):
         character_config = json.load(fp)
 else:
     logging.error("config.json does not exist!")
-    with open("config.json","x") as fp:
+    f_desc = os.open("config.json",flags=(os.O_WRONLY|os.O_CREAT|os.O_EXCL),mode=0o666)
+    with open(f_desc,"w") as fp:
         json.dump(character_config,fp,indent=4)
         logging.info("created new config.json with default settings")
 
@@ -73,7 +83,8 @@ if os.path.exists(character_config["ChatGPT"]["system-message-file"]):
 else:
     logging.error(f"{character_config['ChatGPT']['system-message-file']} does not exist!")
     DEFAULT_SYSTEM_MESSAGE=default_chatgpt_message
-    with open(character_config["ChatGPT"]["system-message-file"],"x",encoding="utf-8") as fp:
+    f_desc = os.open(character_config["ChatGPT"]["system-message-file"],flags=(os.O_WRONLY|os.O_CREAT|os.O_EXCL),mode=0o666)
+    with open(f_desc,"w",encoding="utf-8") as fp:
         fp.write(default_chatgpt_message)
         logging.info(f"created new {character_config['ChatGPT']['system-message-file']} with default message")
 
@@ -85,7 +96,8 @@ if os.path.exists(character_config["peter_box"]["system-message-file"]):
 else:
     logging.error(f"{character_config['peter_box']['system-message-file']} does not exist!")
     PETER_BOX_SYSTEM_MESSAGE=peter_box_default_message
-    with open(character_config["peter_box"]["system-message-file"],"x",encoding="utf-8") as fp:
+    f_desc = os.open(character_config["peter_box"]["system-message-file"],flags=(os.O_WRONLY|os.O_CREAT|os.O_EXCL),mode=0o666)
+    with open(f_desc,"w",encoding="utf-8") as fp:
         fp.write(peter_box_default_message)
         logging.info(f"created new {character_config['peter_box']['system-message-file']} with default message")
 
@@ -97,9 +109,23 @@ if os.path.exists(character_config["schneutsch"]["system-message-file"]):
 else:
     logging.error(f"{character_config['schneutsch']['system-message-file']} does not exist!")
     SCHNEUTSCH_SYSTEM_MESSAGE=schneutsch_default_message
-    with open(character_config["schneutsch"]["system-message-file"],"x",encoding="utf-8") as fp:
+    f_desc = os.open(character_config["schneutsch"]["system-message-file"],flags=(os.O_WRONLY|os.O_CREAT|os.O_EXCL),mode=0o666)
+    with open(f_desc,"w",encoding="utf-8") as fp:
         fp.write(schneutsch_default_message)
         logging.info(f"created new {character_config['schneutsch']['system-message-file']} with default message")
+
+# Queerokratia - Reader system message
+queerokratia_default_message = "Du bist der Queerokratia - Reader."
+if os.path.exists(character_config["queerokratia"]["system-message-file"]):
+    with open(character_config["queerokratia"]["system-message-file"],"r",encoding="utf-8") as fp:
+        QUEEROKRATIA_SYSTEM_MESSAGE = fp.read()
+else:
+    logging.error(f"{character_config['queerokratia']['system-message-file']} does not exist!")
+    QUEEROKRATIA_SYSTEM_MESSAGE=queerokratia_default_message
+    f_desc = os.open(character_config["queerokratia"]["system-message-file"],flags=(os.O_WRONLY|os.O_CREAT|os.O_EXCL),mode=0o666)
+    with open(f_desc,"w",encoding="utf-8") as fp:
+        fp.write(queerokratia_default_message)
+        logging.info(f"created new {character_config['queerokratia']['system-message-file']} with default message")
 
 DEFAULT_MODEL=character_config["ChatGPT"]["model"]
 DEFAULT_TEMPERATURE=character_config["ChatGPT"]["temperature"]
@@ -121,6 +147,13 @@ SCHNEUTSCH_FREQUENCY=character_config["schneutsch"]["frequency"]
 SCHNEUTSCH_PRESENCE=character_config["schneutsch"]["presence"]
 SCHNEUTSCH_VOICE=character_config["schneutsch"]["voice"]
 SCHNEUTSCH_LIMIT=character_config["schneutsch"]["limit"]
+
+QUEEROKRATIA_MODEL = character_config["queerokratia"]["model"]
+QUEEROKRATIA_TEMPERATURE = character_config["queerokratia"]["temperature"]
+QUEEROKRATIA_FREQUENCY=character_config["queerokratia"]["frequency"]
+QUEEROKRATIA_PRESENCE=character_config["queerokratia"]["presence"]
+QUEEROKRATIA_VOICE=character_config["queerokratia"]["voice"]
+QUEEROKRATIA_LIMIT=character_config["queerokratia"]["limit"]
 
 message_memory=[
     {"role": "system", "content": DEFAULT_SYSTEM_MESSAGE}
@@ -211,10 +244,10 @@ async def get_chatgpt_response(prompt):
 
 @bot.event
 async def on_ready():
-    # commands = await tree.sync(guild=discord.Object(id=1150429390015037521))
-    # print("Synced Commands:")
-    # for com in commands:
-    #     print(f"{com.name}")
+    commands = await tree.sync(guild=discord.Object(id=1150429390015037521))
+    print("Synced Commands:")
+    for com in commands:
+        print(f"{com.name}")
     logging.info(f'{bot.user.name} ist bereit!')
 
 def set_character(target_model,target_temperature,target_frequency,target_presence,target_voice,target_limit,system_message):
@@ -263,6 +296,15 @@ async def schneutsch(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
     set_character(SCHNEUTSCH_MODEL,SCHNEUTSCH_TEMPERATURE,SCHNEUTSCH_FREQUENCY,SCHNEUTSCH_PRESENCE,SCHNEUTSCH_VOICE,SCHNEUTSCH_LIMIT,SCHNEUTSCH_SYSTEM_MESSAGE)
     info_str=f"Die bisherige Konversation wurde gelöscht und das Schneutsch-Lexikon ist da."
+    logging.info(info_str)
+    response = await get_chatgpt_response(f"{interaction.user.display_name}: Hallo")
+    await interaction.followup.send(response)
+
+@tree.command(name="queerokratia", description="Löscht den aktuellen Chat und startet einen Chat mit dem Queerokratia - Reader",guild=discord.Object(id=1150429390015037521))
+async def queerokratia(interaction: discord.Interaction):
+    await interaction.response.defer(thinking=True)
+    set_character(QUEEROKRATIA_MODEL,QUEEROKRATIA_TEMPERATURE,QUEEROKRATIA_FREQUENCY,QUEEROKRATIA_PRESENCE,QUEEROKRATIA_VOICE,QUEEROKRATIA_LIMIT,QUEEROKRATIA_SYSTEM_MESSAGE)
+    info_str=f"Die bisherige Konversation wurde gelöscht und der Queerokratia - Reader ist da."
     logging.info(info_str)
     response = await get_chatgpt_response(f"{interaction.user.display_name}: Hallo")
     await interaction.followup.send(response)
