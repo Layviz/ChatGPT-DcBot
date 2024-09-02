@@ -244,10 +244,10 @@ async def get_chatgpt_response(prompt):
 
 @bot.event
 async def on_ready():
-    # commands = await tree.sync(guild=discord.Object(id=1150429390015037521))
-    # print("Synced Commands:")
-    # for com in commands:
-    #     print(f"{com.name}")
+    commands = await tree.sync(guild=discord.Object(id=1150429390015037521))
+    print("Synced Commands:")
+    for com in commands:
+        print(f"{com.name}")
     logging.info(f'{bot.user.name} ist bereit!')
 
 def set_character(target_model,target_temperature,target_frequency,target_presence,target_voice,target_limit,system_message):
@@ -328,7 +328,7 @@ async def error_message(interaction: discord.Interaction):
 
 @tree.command(name="vorlesen", description="Liest die letzte Nachricht vor.",guild=discord.Object(id=1150429390015037521))
 @discord.app_commands.describe(stimme="Hiermit kann eine andere Stimme zum vorlesen ausgewählt werden")
-async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Finn","Greta"]=None):
+async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Finn","Greta","Giesela","Lisa","Peter"]=None):
     global last_message_read, last_voice, audio_semaphore
     logging.debug("called vorlesen")
     if len(message_memory) <= 1:
@@ -352,6 +352,12 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
             current_voice="fable"
         elif stimme == "Greta":
             current_voice="shimmer"
+        elif stimme == "Giesela":
+            current_voice="alloy"
+        elif stimme == "Lisa":
+            current_voice="nova"
+        elif stimme == "Peter":
+            current_voice="onyx"
         else:
             current_voice=voice
     if audio_semaphore.acquire(blocking=False):
