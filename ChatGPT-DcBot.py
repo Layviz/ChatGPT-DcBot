@@ -183,9 +183,7 @@ bot = discord.Client(intents=intents)
 tree = discord.app_commands.CommandTree(bot)
 
 ZOTATE_START = datetime(2023,9,13)
-ZOTATE_CHANNEL = bot.get_channel(1151523455255191644)
-if ZOTATE_CHANNEL is None:
-    logging.error("zotate Channel was not found!")
+ZOTATE_CHANNEL = None
 
 logging.info("Setting up openai")
 client = AsyncOpenAI(
@@ -252,10 +250,15 @@ async def get_chatgpt_response(prompt):
 
 @bot.event
 async def on_ready():
-    commands = await tree.sync(guild=discord.Object(id=1150429390015037521))
-    print("Synced Commands:")
-    for com in commands:
-        print(f"{com.name}")
+    global ZOTATE_CHANNEL
+    # commands = await tree.sync(guild=discord.Object(id=1150429390015037521))
+    # print("Synced Commands:")
+    # for com in commands:
+    #     print(f"{com.name}")
+    
+    ZOTATE_CHANNEL = bot.get_channel(1151523455255191644)
+    if ZOTATE_CHANNEL is None:
+        logging.error("zotate Channel was not found!")
     logging.info(f'{bot.user.name} ist bereit!')
 
 def set_character(target_model,target_temperature,target_frequency,target_presence,target_voice,target_limit,system_message):
@@ -460,10 +463,12 @@ async def zotate(interaction: discord.Interaction):
             random_before = ZOTATE_START + timedelta(random_days+1)
             messages  = [message async for message in ZOTATE_CHANNEL.history(after=random_after,before=random_before,limit=None)]
         
-        randoms.append(messages[random.randint(0,len(messages)-1)])
+        msg = messages[random.randint(0,len(messages)-1)]
+        re_match = re.search("\"(.*)\"",msg.clean_content)
+        if re_match:
+            randoms.append(re_match.group(1))
 
-    zitate = [re.search("\".*\"",message.clean_content) for message in randoms]
-    get_chatgpt_response("Erzähl eine Geschichte und verwende dabei diese Zitate:\n"+"\n".join(zitate))
+    content = await get_chatgpt_response("Erzähl eine Geschichte und verwende dabei diese Zitate:\n"+"\n".join(randoms))
     while len(content)>2000: #discord message limit
         index = content.rindex(' ',0,2000)
         await interaction.followup.send(content[:index])
