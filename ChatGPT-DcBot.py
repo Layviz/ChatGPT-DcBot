@@ -27,6 +27,7 @@ except OSError:
     sys.exit(1)
 
 character_config = {
+    "reset_sec": 60*60*8,
     "ChatGPT":{
         "system-message-file":"ChatGPT.txt",
         "model":"gpt-4o-mini",
@@ -68,7 +69,9 @@ character_config = {
 logging.info("loading config")
 if os.path.exists("config.json"):
     with open("config.json","r") as fp:
-        character_config = json.load(fp)
+        character_config.update(json.load(fp))
+    with open("config.json","w") as fp:
+        json.dump(character_config,fp,indent=4)
 else:
     logging.error("config.json does not exist!")
     f_desc = os.open("config.json",flags=(os.O_WRONLY|os.O_CREAT|os.O_EXCL),mode=0o666)
@@ -173,6 +176,8 @@ last_message_read = 0
 last_voice = DEFAULT_VOICE
 timer = None
 error = None
+
+RESET_TIMER=character_config["reset_sec"]
 
 audio_semaphore = threading.Semaphore()
 
@@ -502,8 +507,8 @@ async def on_message(message):
             await message.reply(content)
         if timer and timer.is_alive():
             timer.cancel()
-        else:
-            timer = threading.Timer(60*60*8,timed_clear)
+        if RESET_TIMER>0:
+            timer = threading.Timer(RESET_TIMER,timed_clear)
             timer.start()
         return True
     return False
