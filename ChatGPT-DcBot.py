@@ -9,6 +9,9 @@ import asyncio,os
 import string
 from typing import Literal
 from ffmpeg import FFmpeg
+from datetime import datetime,timedelta
+import random,re
+
 
 logging.basicConfig(format="%(asctime)s %(levelname)s: %(message)s",level=logging.DEBUG)
 
@@ -179,6 +182,11 @@ intents.message_content = True
 bot = discord.Client(intents=intents)
 tree = discord.app_commands.CommandTree(bot)
 
+ZOTATE_START = datetime(2023,9,13)
+ZOTATE_CHANNEL = bot.get_channel(1151523455255191644)
+if ZOTATE_CHANNEL is None:
+    logging.error("zotate Channel was not found!")
+
 logging.info("Setting up openai")
 client = AsyncOpenAI(
     api_key=secrets["openai.api-key"]
@@ -190,7 +198,7 @@ def format_filename(s):
 Uses a whitelist approach: any characters not present in valid_chars are
 removed. Also spaces are replaced with underscores.
 """
-    valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
+    valid_chars = "-_.() %s%säöüßÄÖÜ" % (string.ascii_letters, string.digits)
     filename = ''.join(c for c in s if c in valid_chars)
     return filename
 
@@ -436,6 +444,32 @@ Bei Fragen Kann man den Admin des Servers anschreiben, oder ein Thread öffnen b
 Sonst viel Spaß mit dem Bot :)"""
     logging.info("sending help text")
     await interaction.response.send_message(help_text)
+
+@tree.command(name="zotate", description="Erzeugt eine Geschichte aus zufälligen Zotaten",guild=discord.Object(id=1150429390015037521))
+async def zotate(interaction: discord.Interaction):
+    await interaction.response.defer(thinking=True)
+    num_zitate = 7
+    randoms = []
+    days = (datetime.now()-ZOTATE_START).days
+    
+    while len(randoms) < num_zitate:
+        messages = []
+        while len(messages)==0:
+            random_days = random.randint(0,days)
+            random_after = ZOTATE_START + timedelta(random_days-1)
+            random_before = ZOTATE_START + timedelta(random_days+1)
+            messages  = [message async for message in ZOTATE_CHANNEL.history(after=random_after,before=random_before,limit=None)]
+        
+        randoms.append(messages[random.randint(0,len(messages)-1)])
+
+    zitate = [re.search("\".*\"",message.clean_content) for message in randoms]
+    get_chatgpt_response("Erzähl eine Geschichte und verwende dabei diese Zitate:\n"+"\n".join(zitate))
+    while len(content)>2000: #discord message limit
+        index = content.rindex(' ',0,2000)
+        await interaction.followup.send(content[:index])
+        content = content[index+1:]
+    await interaction.followup.send(content)
+
 
 @bot.event
 async def on_message(message):
