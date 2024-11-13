@@ -472,6 +472,7 @@ async def zotate(interaction: discord.Interaction):
         re_match = re.search("\"(.*)\"",msg.clean_content)
         if re_match:
             randoms.append(re_match.group(1))
+            logging.debug(f"gewähltes Zotat vom {msg.created_at.strftime("%d.%m.%Y, %H:%M:%S")}: \"{re_match.group(1)}\"")
 
     content = await get_chatgpt_response("Erzähl eine Geschichte und verwende dabei diese Zitate:\n"+"\n".join(randoms))
     while len(content)>2000: #discord message limit
