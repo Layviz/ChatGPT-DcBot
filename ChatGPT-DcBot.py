@@ -189,6 +189,7 @@ tree = discord.app_commands.CommandTree(bot)
 
 ZOTATE_START = datetime(2023,9,13)
 ZOTATE_CHANNEL = None
+used_zotate = []
 
 logging.info("Setting up openai")
 client = AsyncOpenAI(
@@ -267,7 +268,7 @@ async def on_ready():
     logging.info(f'{bot.user.name} ist bereit!')
 
 def set_character(target_model,target_temperature,target_frequency,target_presence,target_voice,target_limit,system_message):
-    global message_memory, total_token, model,temperature,frequency,presence,voice,token_limit
+    global message_memory, total_token, model,temperature,frequency,presence,voice,token_limit,used_zotate
     message_memory = [{"role": "system", "content": system_message}] 
     model=target_model
     temperature = target_temperature
@@ -276,6 +277,7 @@ def set_character(target_model,target_temperature,target_frequency,target_presen
     voice=target_voice
     token_limit=target_limit
     total_token=0
+    used_zotate = []
 
 def timed_clear():
     set_character(DEFAULT_MODEL,DEFAULT_TEMPERATURE,DEFAULT_FREQUENCY,DEFAULT_PRESENCE,DEFAULT_VOICE,DEFAULT_LIMIT,DEFAULT_SYSTEM_MESSAGE)
@@ -455,6 +457,7 @@ Sonst viel Spaß mit dem Bot :)"""
 
 @tree.command(name="zotate", description="Erzeugt eine Geschichte aus zufälligen Zotaten",guild=discord.Object(id=1150429390015037521))
 async def zotate(interaction: discord.Interaction):
+    global used_zotate
     await interaction.response.defer(thinking=True)
     num_zitate = 7
     randoms = []
@@ -470,7 +473,8 @@ async def zotate(interaction: discord.Interaction):
         
         msg = messages[random.randint(0,len(messages)-1)]
         re_match = re.search("\"(.*)\"",msg.clean_content)
-        if re_match:
+        if re_match and msg.id not in used_zotate:
+            used_zotate.append(msg.id)
             randoms.append(re_match.group(1))
             logging.debug(f"gewähltes Zotat vom {msg.created_at.strftime("%d.%m.%Y, %H:%M:%S")}: \"{re_match.group(1)}\"")
 
