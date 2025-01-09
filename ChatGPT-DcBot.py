@@ -425,6 +425,35 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
         await interaction.followup.send("Der Bot liest noch vor. Versuche es später nochmal.")
     
 
+@tree.context_menu(name="erneut vorlesen",guild=discord.Object(id=1150429390015037521))
+async def erneut_vorlesen(interaction: discord.Interaction, message: discord.Message):
+    global audio_semaphore
+    if message.author.id == bot.user.id:
+        if len(message.attachments) == 1 and message.attachments[0].content_type == "audio/mpeg": 
+            await interaction.response.defer(thinking=True,ephemeral=True)
+            if interaction.user.voice.channel:
+                if audio_semaphore.acquire(blocking=False):
+                    try:
+                        audio = discord.FFmpegPCMAudio(message.attachments[0].url,executable="ffmpeg")
+                        vc = await interaction.user.voice.channel.connect()
+                        vc.play(audio)
+                        await interaction.followup.send("Nachricht wird erneut vorgelesen.",ephemeral=True)
+                        while vc.is_playing() and vc.is_connected():
+                            await asyncio.sleep(1)
+                        # disconnect after the player has finished
+                        await vc.disconnect()
+                    finally:
+                        audio_semaphore.release()
+                else:
+                    await interaction.followup.send("Der Bot liest noch vor. Versuche es später nochmal.",ephemeral=True)
+            else:
+
+                await interaction.followup.send("Du bist nicht in einem Voice Channel",ephemeral=True)
+        else:
+            await interaction.response.send_message("Wähle eine Nachricht mit einer vorgelesenen Audio",ephemeral=True)
+    else:
+        await interaction.response.send_message("Das ist keine Nachricht vom ChatGPT-DcBot!",ephemeral=True)
+
 @tree.command(name="help", description="Zeigt die Hilfe an",guild=discord.Object(id=1150429390015037521))
 async def hilfe(interaction: discord.Interaction):
     help_text="""Anleitung zur Nutzung von ChatGPT-DcBot:
@@ -476,7 +505,7 @@ async def zotate(interaction: discord.Interaction):
         if re_match and msg.id not in used_zotate:
             used_zotate.append(msg.id)
             randoms.append(re_match.group(1))
-            logging.debug(f"gewähltes Zotat vom {msg.created_at.strftime("%d.%m.%Y, %H:%M:%S")}: \"{re_match.group(1)}\"")
+            #logging.debug(f"gewähltes Zotat vom {msg.created_at.strftime("%d.%m.%Y, %H:%M:%S")}: \"{re_match.group(1)}\"")
 
     content = await get_chatgpt_response("Erzähl eine Geschichte und verwende dabei diese Zitate:\n"+"\n".join(randoms))
     while len(content)>2000: #discord message limit
