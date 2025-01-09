@@ -352,7 +352,13 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
     if len(message_memory) <= 1:
         await interaction.response.send_message("Es gibt noch keine Nachricht zum vorlesen.")
         return
-    message_to_read = message_memory[-1]['content']
+    for i in range(-1,-len(message_memory),-1):
+        if message_memory[i]["role"]=="assistant":
+            message_to_read = message_memory[i]['content']
+            break
+    if not message_to_read:
+        await interaction.response.send_message("Es wurde keine Nachricht zum vorlesen gefunden.")
+        return
     await interaction.response.defer(thinking=True)
     user = interaction.user
     if user.voice:
