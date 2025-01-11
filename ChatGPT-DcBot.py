@@ -70,8 +70,8 @@ logging.info("loading config")
 if os.path.exists("config.json"):
     with open("config.json","r") as fp:
         character_config.update(json.load(fp))
-    # with open("config.json","w") as fp:
-    #     json.dump(character_config,fp,indent=4)
+    with open("config.json","w") as fp:
+        json.dump(character_config,fp,indent=4)
 else:
     logging.error("config.json does not exist!")
     f_desc = os.open("config.json",flags=(os.O_WRONLY|os.O_CREAT|os.O_EXCL),mode=0o666)
