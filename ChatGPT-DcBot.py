@@ -171,6 +171,7 @@ presence= DEFAULT_PRESENCE
 total_token = 0
 voice=DEFAULT_VOICE
 token_limit=DEFAULT_LIMIT
+total_messages = 0
 
 last_message_read = 0
 last_voice = DEFAULT_VOICE
@@ -210,7 +211,7 @@ removed. Also spaces are replaced with underscores.
 async def get_chatgpt_heading(text:str):
     try:
         response = await client.chat.completions.create(model="gpt-4o-mini",messages=[
-            {"role":"system","content":"Gib dem folgenenden Text eine kurze passende Überschrift mit maximal 43 Buchstaben."},
+            {"role":"system","content":"Gib dem folgenenden Text eine kurze passende einzigartige Überschrift mit maximal 43 Buchstaben."},
             {"role":"user","content":text},
         ])
         logging.debug(f" Heading hat {response.usage.completion_tokens} Tokens")
@@ -223,7 +224,7 @@ async def get_chatgpt_heading(text:str):
         return "Nachricht.mp3"
 
 async def get_chatgpt_response(prompt):
-    global total_token
+    global total_token,total_messages
     global message_memory
     try:
         message_memory.append({"role": "user", "content": prompt})
@@ -240,6 +241,7 @@ async def get_chatgpt_response(prompt):
         message_memory.append({"role":"assistant", "content":antwort})
         total_token = response.usage.total_tokens
         logging.debug(f"Total number of tokens is now {total_token}")
+        total_messages += 1
         if total_token > token_limit:
             logging.warning("The current conversation has reached the token limit!")
             message_memory=message_memory[len(message_memory)//2:]
@@ -269,7 +271,7 @@ async def on_ready():
     logging.info(f'{bot.user.name} ist bereit!')
 
 def set_character(target_model,target_temperature,target_frequency,target_presence,target_voice,target_limit,system_message):
-    global message_memory, total_token, model,temperature,frequency,presence,voice,token_limit,used_zotate,zotate
+    global message_memory, total_token, model,temperature,frequency,presence,voice,token_limit,used_zotate,zotate,total_messages
     message_memory = [{"role": "system", "content": system_message}] 
     model=target_model
     temperature = target_temperature
@@ -278,6 +280,7 @@ def set_character(target_model,target_temperature,target_frequency,target_presen
     voice=target_voice
     token_limit=target_limit
     total_token=0
+    total_messages = 0
     used_zotate = []
     zotate=None
 
@@ -332,7 +335,7 @@ async def queerokratia(interaction: discord.Interaction):
 @tree.command(name="info", description="Zeigt an wie viele Tokens der derzeitige Chat kostet.",guild=discord.Object(id=1150429390015037521))
 async def info(interaction: discord.Interaction):
     messages_len = len(message_memory)
-    info_str=f"Diese Konversation besteht zur Zeit aus {messages_len} Nachrichten. Das entspricht {total_token} Tokens."
+    info_str=f"Diese Konversation besteht aus {total_messages} Nachrichten und zur Zeit aus {messages_len} Nachrichten. Das entspricht {total_token} Tokens."
     logging.info(info_str)
     await interaction.response.send_message(info_str)
 
