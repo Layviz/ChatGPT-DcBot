@@ -70,8 +70,8 @@ logging.info("loading config")
 if os.path.exists("config.json"):
     with open("config.json","r") as fp:
         character_config.update(json.load(fp))
-    with open("config.json","w") as fp:
-        json.dump(character_config,fp,indent=4)
+    # with open("config.json","w") as fp:
+    #     json.dump(character_config,fp,indent=4)
 else:
     logging.error("config.json does not exist!")
     f_desc = os.open("config.json",flags=(os.O_WRONLY|os.O_CREAT|os.O_EXCL),mode=0o666)
@@ -189,6 +189,7 @@ tree = discord.app_commands.CommandTree(bot)
 
 ZOTATE_START = datetime(2023,9,13)
 ZOTATE_CHANNEL = None
+zotate = None
 used_zotate = []
 
 logging.info("Setting up openai")
@@ -268,7 +269,7 @@ async def on_ready():
     logging.info(f'{bot.user.name} ist bereit!')
 
 def set_character(target_model,target_temperature,target_frequency,target_presence,target_voice,target_limit,system_message):
-    global message_memory, total_token, model,temperature,frequency,presence,voice,token_limit,used_zotate
+    global message_memory, total_token, model,temperature,frequency,presence,voice,token_limit,used_zotate,zotate
     message_memory = [{"role": "system", "content": system_message}] 
     model=target_model
     temperature = target_temperature
@@ -278,6 +279,7 @@ def set_character(target_model,target_temperature,target_frequency,target_presen
     token_limit=target_limit
     total_token=0
     used_zotate = []
+    zotate=None
 
 def timed_clear():
     set_character(DEFAULT_MODEL,DEFAULT_TEMPERATURE,DEFAULT_FREQUENCY,DEFAULT_PRESENCE,DEFAULT_VOICE,DEFAULT_LIMIT,DEFAULT_SYSTEM_MESSAGE)
@@ -492,24 +494,33 @@ Sonst viel Spaß mit dem Bot :)"""
 
 @tree.command(name="zotate", description="Erzeugt eine Geschichte aus zufälligen Zotaten",guild=discord.Object(id=1150429390015037521))
 async def zotate(interaction: discord.Interaction):
-    global used_zotate
+    global used_zotate,zotate
     await interaction.response.defer(thinking=True)
     num_zitate = 7
     randoms = []
-    days = (datetime.now()-ZOTATE_START).days
+    used_dates = {}
+    # days = (datetime.now()-ZOTATE_START).days
     
+    if zotate is None:
+        zotate = [message async for message in ZOTATE_CHANNEL.history(limit=None)]
+
     while len(randoms) < num_zitate:
-        messages = []
-        while len(messages)==0:
-            random_days = random.randint(0,days)
-            random_after = ZOTATE_START + timedelta(random_days-1)
-            random_before = ZOTATE_START + timedelta(random_days+1)
-            messages  = [message async for message in ZOTATE_CHANNEL.history(after=random_after,before=random_before,limit=None)]
+        # messages = []
+        # while len(messages)==0:
+        #     random_days = random.randint(0,days)
+        #     random_after = ZOTATE_START + timedelta(random_days-1)
+        #     random_before = ZOTATE_START + timedelta(random_days+1)
+        #     messages  = [message async for message in ZOTATE_CHANNEL.history(after=random_after,before=random_before,limit=None)]
         
-        msg = messages[random.randint(0,len(messages)-1)]
+
+        msg = zotate[random.randint(0,len(zotate)-1)]
+        from_this_date = used_dates.get(msg.created_at.date(),0) 
+        if from_this_date >= 3:
+            continue
         re_match = re.search("\"(.*)\"",msg.clean_content)
         if re_match and msg.id not in used_zotate:
             used_zotate.append(msg.id)
+            used_dates[msg.created_at.date()] = from_this_date+1
             randoms.append(re_match.group(1))
             #logging.debug(f"gewähltes Zotat vom {msg.created_at.strftime("%d.%m.%Y, %H:%M:%S")}: \"{re_match.group(1)}\"")
 
