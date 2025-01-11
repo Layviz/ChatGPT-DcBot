@@ -537,7 +537,7 @@ async def zotate(interaction: discord.Interaction):
 
 @bot.event
 async def on_message(message):
-    global timer
+    global timer,total_messages
     logging.debug("on_message event registered")
     logging.debug(f"mentions {message.mentions}")
     if bot.user in message.mentions:
@@ -553,6 +553,7 @@ async def on_message(message):
             return False
         logging.debug(f"Got this message: {message.clean_content}")
         async with message.channel.typing():
+            total_messages += 1
             content = await get_chatgpt_response(f"{message.author.display_name}: {message.clean_content}")
             while len(content)>2000: #discord message limit
                 index = content.rindex(' ',0,2000)
