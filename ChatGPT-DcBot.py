@@ -200,6 +200,7 @@ presence= DEFAULT_PRESENCE
 total_token = 0
 voice=DEFAULT_VOICE
 token_limit=DEFAULT_LIMIT
+total_messages = 0
 
 last_message_read = 0
 last_voice = DEFAULT_VOICE
@@ -218,6 +219,7 @@ tree = discord.app_commands.CommandTree(bot)
 
 ZOTATE_START = datetime(2023,9,13)
 ZOTATE_CHANNEL = None
+zotate = None
 used_zotate = []
 
 logging.info("Setting up openai")
@@ -238,7 +240,7 @@ removed. Also spaces are replaced with underscores.
 async def get_chatgpt_heading(text:str):
     try:
         response = await client.chat.completions.create(model="gpt-4o-mini",messages=[
-            {"role":"system","content":"Gib dem folgenenden Text eine kurze passende Überschrift mit maximal 43 Buchstaben."},
+            {"role":"system","content":"Gib dem folgenenden Text eine kurze passende einzigartige Überschrift mit maximal 43 Buchstaben."},
             {"role":"user","content":text},
         ])
         logging.debug(f" Heading hat {response.usage.completion_tokens} Tokens")
@@ -251,7 +253,7 @@ async def get_chatgpt_heading(text:str):
         return "Nachricht.mp3"
 
 async def get_chatgpt_response(prompt):
-    global total_token
+    global total_token,total_messages
     global message_memory
     try:
         message_memory.append({"role": "user", "content": prompt})
@@ -268,6 +270,7 @@ async def get_chatgpt_response(prompt):
         message_memory.append({"role":"assistant", "content":antwort})
         total_token = response.usage.total_tokens
         logging.debug(f"Total number of tokens is now {total_token}")
+        total_messages += 1
         if total_token > token_limit:
             logging.warning("The current conversation has reached the token limit!")
             message_memory=message_memory[len(message_memory)//2:]
@@ -297,7 +300,7 @@ async def on_ready():
     logging.info(f'{bot.user.name} ist bereit!')
 
 def set_character(target_model,target_temperature,target_frequency,target_presence,target_voice,target_limit,system_message):
-    global message_memory, total_token, model,temperature,frequency,presence,voice,token_limit,used_zotate
+    global message_memory, total_token, model,temperature,frequency,presence,voice,token_limit,used_zotate,zotate,total_messages
     message_memory = [{"role": "system", "content": system_message}] 
     model=target_model
     temperature = target_temperature
@@ -306,7 +309,9 @@ def set_character(target_model,target_temperature,target_frequency,target_presen
     voice=target_voice
     token_limit=target_limit
     total_token=0
+    total_messages = 0
     used_zotate = []
+    zotate=None
 
 def timed_clear():
     set_character(DEFAULT_MODEL,DEFAULT_TEMPERATURE,DEFAULT_FREQUENCY,DEFAULT_PRESENCE,DEFAULT_VOICE,DEFAULT_LIMIT,DEFAULT_SYSTEM_MESSAGE)
@@ -368,7 +373,7 @@ async def hal(interaction: discord.Interaction):
 @tree.command(name="info", description="Zeigt an wie viele Tokens der derzeitige Chat kostet.",guild=discord.Object(id=1150429390015037521))
 async def info(interaction: discord.Interaction):
     messages_len = len(message_memory)
-    info_str=f"Diese Konversation besteht zur Zeit aus {messages_len} Nachrichten. Das entspricht {total_token} Tokens."
+    info_str=f"Diese Konversation besteht aus {total_messages} Nachrichten und zur Zeit aus {messages_len} Nachrichten. Das entspricht {total_token} Tokens."
     logging.info(info_str)
     await interaction.response.send_message(info_str)
 
@@ -530,24 +535,33 @@ Sonst viel Spaß mit dem Bot :)"""
 
 @tree.command(name="zotate", description="Erzeugt eine Geschichte aus zufälligen Zotaten",guild=discord.Object(id=1150429390015037521))
 async def zotate(interaction: discord.Interaction):
-    global used_zotate
+    global used_zotate,zotate
     await interaction.response.defer(thinking=True)
     num_zitate = 7
     randoms = []
-    days = (datetime.now()-ZOTATE_START).days
+    used_dates = {}
+    # days = (datetime.now()-ZOTATE_START).days
     
+    if zotate is None:
+        zotate = [message async for message in ZOTATE_CHANNEL.history(limit=None)]
+
     while len(randoms) < num_zitate:
-        messages = []
-        while len(messages)==0:
-            random_days = random.randint(0,days)
-            random_after = ZOTATE_START + timedelta(random_days-1)
-            random_before = ZOTATE_START + timedelta(random_days+1)
-            messages  = [message async for message in ZOTATE_CHANNEL.history(after=random_after,before=random_before,limit=None)]
+        # messages = []
+        # while len(messages)==0:
+        #     random_days = random.randint(0,days)
+        #     random_after = ZOTATE_START + timedelta(random_days-1)
+        #     random_before = ZOTATE_START + timedelta(random_days+1)
+        #     messages  = [message async for message in ZOTATE_CHANNEL.history(after=random_after,before=random_before,limit=None)]
         
-        msg = messages[random.randint(0,len(messages)-1)]
+
+        msg = zotate[random.randint(0,len(zotate)-1)]
+        from_this_date = used_dates.get(msg.created_at.date(),0) 
+        if from_this_date >= 3:
+            continue
         re_match = re.search("\"(.*)\"",msg.clean_content)
         if re_match and msg.id not in used_zotate:
             used_zotate.append(msg.id)
+            used_dates[msg.created_at.date()] = from_this_date+1
             randoms.append(re_match.group(1))
             #logging.debug(f"gewähltes Zotat vom {msg.created_at.strftime("%d.%m.%Y, %H:%M:%S")}: \"{re_match.group(1)}\"")
 
@@ -561,7 +575,7 @@ async def zotate(interaction: discord.Interaction):
 
 @bot.event
 async def on_message(message):
-    global timer
+    global timer,total_messages
     logging.debug("on_message event registered")
     logging.debug(f"mentions {message.mentions}")
     if bot.user in message.mentions:
@@ -577,6 +591,7 @@ async def on_message(message):
             return False
         logging.debug(f"Got this message: {message.clean_content}")
         async with message.channel.typing():
+            total_messages += 1
             content = await get_chatgpt_response(f"{message.author.display_name}: {message.clean_content}")
             while len(content)>2000: #discord message limit
                 index = content.rindex(' ',0,2000)
