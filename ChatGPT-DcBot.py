@@ -361,7 +361,7 @@ async def queerokratia(interaction: discord.Interaction):
     response = await get_chatgpt_response(f"{interaction.user.display_name}: Hallo")
     await interaction.followup.send(response)
 
-@tree.command(name="HAL", description="Löscht den aktuellen Chat und startet einen Chat mit HAL",guild=discord.Object(id=1150429390015037521))
+@tree.command(name="hal", description="Löscht den aktuellen Chat und startet einen Chat mit HAL",guild=discord.Object(id=1150429390015037521))
 async def hal(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
     set_character(HAL_MODEL,HAL_TEMPERATURE,HAL_FREQUENCY,HAL_PRESENCE,HAL_VOICE,HAL_LIMIT,HAL_SYSTEM_MESSAGE)
@@ -389,7 +389,7 @@ async def error_message(interaction: discord.Interaction):
 
 @tree.command(name="vorlesen", description="Liest die letzte Nachricht vor.",guild=discord.Object(id=1150429390015037521))
 @discord.app_commands.describe(stimme="Hiermit kann eine andere Stimme zum vorlesen ausgewählt werden")
-async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Finn","Greta","Giesela","Lisa","Peter"]=None):
+async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Finn","Greta","Giesela","Lisa","Peter","Carol","Karen"]=None):
     global last_message_read, last_voice, audio_semaphore
     logging.debug("called vorlesen")
     if len(message_memory) <= 1:
@@ -425,6 +425,10 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
             current_voice="nova"
         elif stimme == "Peter":
             current_voice="onyx"
+        elif stimme == "Carol":
+            current_voice="sage"
+        elif stimme == "Karen":
+            current_voice="coral"
         else:
             current_voice=voice
     if audio_semaphore.acquire(blocking=False):
