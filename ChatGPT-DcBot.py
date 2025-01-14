@@ -519,29 +519,31 @@ async def erneut_vorlesen(interaction: discord.Interaction, message: discord.Mes
 
 @tree.command(name="help", description="Zeigt die Hilfe an",guild=discord.Object(id=1150429390015037521))
 async def hilfe(interaction: discord.Interaction):
-    help_text="""Anleitung zur Nutzung von ChatGPT-DcBot:
+    help_text="""**Anleitung zur Nutzung von ChatGPT-DcBot:**
 
-Mit @ Und dem Namen des Bots; "ChatGPT-DcBot" kannst du ihm schreiben. Tippe einfach dann das ein was du möchtest und schon wird dir darauf geantwortet.
+Mit **@** und dem Namen des Bots "__ChatGPT-DcBot__" kannst du ihm schreiben. Antworte dann einfach auf seine Nachricht um das Gespräch fortzuführen.
 
-Antworte dann einfach auf seine Nachricht um das Gespräch fortzuführen.
+Mit `/chat_gpt` kannst du den aktuellen Chat löschen und mit __ChatGPT__ reden.
 
-Mit `/chat_gpt` Kannst du den aktuellen Chat löschen und mit ChatGPT reden.
+Mit `/hal` kannst du den aktuellen Chat löschen und stattdessen mit __HAL__ reden.
 
-Mit `/peter_box` Kannst du den aktuellen Chat löschen und stattdessen mit Peter Box reden.
+Mit `/peter_box` kannst du den aktuellen Chat löschen und stattdessen mit __Peter Box__ reden.
 
-Mit `/schneutsch` Kannst du den aktuellen Chat löschen und mit dem Schneutsch-Lexikon reden.
+Mit `/schneutsch` kannst du den aktuellen Chat löschen und mit dem __Schneutsch-Lexikon__ reden.
 
-Mit `/help` Kannst du den Bot nach Hilfe Fragen.
+Mit `/vorlesen` kannst du die letzte Chatnachricht vorlesen lassen. (*Wenn in VC, Audio wird ebenfalls generiert im Chat.*)
 
-Mit `/clear` Kannst du den aktuellen Chat löschen.
+Mit **Rechtsklick** bei **Apps** auf __erneut vorlesen__ kannst du schon vom Bot generierte Audios erneut vorlesen lassen.
 
-Mit `/vorlesen` Kannst du die letzte Chatnachricht vorlesen lassen. (Wenn in VC, Audio wird ebenfalls generiert im Chat.)
+Mit `/help` kannst du den Bot nach Hilfe Fragen.
+
+Mit `/clear` kannst du den aktuellen Chat löschen.
 
 Mit `/info` kannst du dir anzeigen lassen, wie viel Token der derzeitige Chat kostet.
 
-Mit `/error` Kannst du dir den letzten aufgetretenen Fehler anzeigen lassen.
+Mit `/error` kannst du dir den letzten aufgetretenen Fehler anzeigen lassen.
 
-Bei Fragen Kann man den Admin des Servers anschreiben, oder ein Thread öffnen bei "hilfe" und dort nach Hilfe Fragen.
+Bei Fragen kann man den Admin des Servers anschreiben, oder ein Thread öffnen bei "__hilfe__" und dort nach Hilfe Fragen.
 
 Sonst viel Spaß mit dem Bot :)"""
     logging.info("sending help text")
