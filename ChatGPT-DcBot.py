@@ -9,11 +9,12 @@ import asyncio,os
 import string
 from typing import Literal
 from ffmpeg import FFmpeg
-from datetime import datetime,timedelta
+from datetime import datetime
 import random,re
+import traceback
 
 
-logging.basicConfig(format="%(asctime)s %(levelname)s: %(message)s",level=logging.DEBUG)
+logging.basicConfig(filename="ChatGPT-DcBot.log",filemode="w",format="%(asctime)s %(levelname)s: %(message)s",level=logging.DEBUG)
 
 logging.info("Loading keys")
 try:
@@ -206,6 +207,7 @@ last_message_read = 0
 last_voice = DEFAULT_VOICE
 timer = None
 error = None
+last_exception = None
 
 RESET_TIMER=character_config["reset_sec"]
 
@@ -285,6 +287,10 @@ async def get_chatgpt_response(prompt):
         else:
             antwort = f"Bei der Verarbeitung ist ein Fehler aufgetreten ({e.code})."
         return antwort
+    except Exception as e:
+        global last_exception
+        last_exception = e
+        logging.exception("unkown Error")
 
 @bot.event
 async def on_ready():
@@ -379,18 +385,21 @@ async def info(interaction: discord.Interaction):
 
 @tree.command(name="error", description="Zeigt den letzten aufgetretenen Fehler an",guild=discord.Object(id=1150429390015037521))
 async def error_message(interaction: discord.Interaction):
-    global error
+    global error,last_exception
     if error:
         info_str=f"Fehlercode: {error.status_code} / {error.code}\nNachricht: {error.message}"
-    else:
-        info_str="Bisher wurde kein Fehler verzeichnet."
-    logging.info(info_str)
-    await interaction.response.send_message(info_str)
+        await interaction.response.send_message(info_str)
+    if last_exception:
+        info_str=f"Folgender Trace wurde aufgezeichnet: ````\n{traceback.format_exc()}\n```"
+        await interaction.response.send_message(info_str)
+    if error is None and last_exception is None:
+        info_str="Es wurde kein Fehler festgestellt"
+        await interaction.response.send_message(info_str)
 
 @tree.command(name="vorlesen", description="Liest die letzte Nachricht vor.",guild=discord.Object(id=1150429390015037521))
 @discord.app_commands.describe(stimme="Hiermit kann eine andere Stimme zum vorlesen ausgewählt werden")
 async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Finn","Greta","Giesela","Lisa","Peter","Carol","Karen"]=None):
-    global last_message_read, last_voice, audio_semaphore
+    global last_message_read, last_voice, audio_semaphore, last_exception, error
     logging.debug("called vorlesen")
     if len(message_memory) <= 1:
         await interaction.response.send_message("Es gibt noch keine Nachricht zum vorlesen.")
@@ -463,13 +472,14 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
             else:
                 logging.error(f"{user.display_name} ist nicht in einem Voice Channel")
         except BadRequestError as e:
-            global error
             error = e
             await interaction.followup.send("Es ist ein Fehler aufgetreten. Verwende `/error` um mehr zu erfahren.")
         except discord.ClientException as e:
+            last_exception = e
             logging.exception("ClientException")
             await interaction.followup.send("Es ist ein Fehler aufgetreten. Der Bot scheint bereits im Voice Chat zu sein.")
         except Exception as e:
+            last_exception = e
             logging.exception("Unkown error")
             await interaction.followup.send("Es ist ein unbekannter Fehler aufgetreten.")
         finally:
