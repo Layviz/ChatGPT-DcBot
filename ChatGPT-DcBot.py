@@ -192,7 +192,7 @@ HAL_VOICE=character_config["HAL"]["voice"]
 HAL_LIMIT=character_config["HAL"]["limit"]
 
 message_memory=[
-    {"role": "system", "content": DEFAULT_SYSTEM_MESSAGE}
+    {"role": "developer", "content": DEFAULT_SYSTEM_MESSAGE}
 ]
 model=DEFAULT_MODEL
 temperature = DEFAULT_TEMPERATURE
@@ -276,16 +276,14 @@ async def get_chatgpt_response(prompt):
         if total_token > token_limit:
             logging.warning("The current conversation has reached the token limit!")
             message_memory=message_memory[len(message_memory)//2:]
-            message_memory.insert(0,{"role": "system", "content": DEFAULT_SYSTEM_MESSAGE})
+            # message_memory.insert(0,{"role": "system", "content": DEFAULT_SYSTEM_MESSAGE})
             total_token=-1
         return antwort
     except BadRequestError as e:
         global error
         error = e
-        if e.status_code == 400:
-            antwort = "Diese Konversation hat die maximale Länge erreicht. Lösche die Konversation mit /clear und fang eine neue Konversation an."
-        else:
-            antwort = f"Bei der Verarbeitung ist ein Fehler aufgetreten ({e.code})."
+        logging.error(f"Bad Request {e.message}")
+        antwort = f"Bei der Verarbeitung ist ein Fehler aufgetreten ({e.status_code})."
         return antwort
     except Exception as e:
         global last_exception
@@ -307,7 +305,7 @@ async def on_ready():
 
 def set_character(target_model,target_temperature,target_frequency,target_presence,target_voice,target_limit,system_message):
     global message_memory, total_token, model,temperature,frequency,presence,voice,token_limit,used_zotate,zotate,total_messages
-    message_memory = [{"role": "system", "content": system_message}] 
+    message_memory = [{"role": "developer", "content": system_message}] 
     model=target_model
     temperature = target_temperature
     frequency = target_frequency
