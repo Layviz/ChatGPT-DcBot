@@ -446,8 +446,8 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
                 response.stream_to_file(tempfile)
                 if os.path.exists(convfile): 
                     os.remove(convfile)
-                #ffmpeg -i Nachricht.opus -vn -ar 44100 -ac 2 -q:a 2 Nachricht.mp3
-                FFmpeg().input(tempfile).output(convfile,{"q:a":2},vn=None,ar=44100).execute()
+                #ffmpeg -i Nachricht.opus -vn -ar 44100 -ac 2 -b:a 192k Nachricht.mp3
+                FFmpeg().input(tempfile).output(convfile,{"b:a":"192k"},vn=None,ar=44100).execute()
                 logging.debug("File converted")
                 filename = await get_chatgpt_heading(message_to_read)
                 file = discord.File(convfile,filename=filename)
