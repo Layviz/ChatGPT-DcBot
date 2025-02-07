@@ -73,6 +73,15 @@ character_config = {
         "presence":1.0,
         "voice":"alloy",
         "limit":60000
+    },
+    "tobias":{
+        "system-message-file":"tobias.txt",
+        "model":"gpt-4o-mini",
+        "temperature":1.0,
+        "frequency":1.0,
+        "presence":1.0,
+        "voice":"alloy",
+        "limit":60000
     }
 }
 
@@ -156,6 +165,19 @@ else:
         fp.write(HAL_default_message)
         logging.info(f"created new {character_config['HAL']['system-message-file']} with default message")
 
+# tobias system message
+tobias_default_message = "Du bist Tobias"
+if os.path.exists(character_config["tobias"]["system-message-file"]):
+    with open(character_config["tobias"]["system-message-file"],"r",encoding="utf-8") as fp:
+        TOBIAS_SYSTEM_MESSAGE = fp.read()
+else:
+    logging.error(f"{character_config['tobias']['system-message-file']} does not exist!")
+    TOBIAS_SYSTEM_MESSAGE=HAL_default_message
+    f_desc = os.open(character_config["tobias"]["system-message-file"],flags=(os.O_WRONLY|os.O_CREAT|os.O_EXCL),mode=0o666)
+    with open(f_desc,"w",encoding="utf-8") as fp:
+        fp.write(tobias_default_message)
+        logging.info(f"created new {character_config['tobias']['system-message-file']} with default message")
+
 DEFAULT_MODEL=character_config["ChatGPT"]["model"]
 DEFAULT_TEMPERATURE=character_config["ChatGPT"]["temperature"]
 DEFAULT_FREQUENCY=character_config["ChatGPT"]["frequency"]
@@ -190,6 +212,13 @@ HAL_FREQUENCY=character_config["HAL"]["frequency"]
 HAL_PRESENCE=character_config["HAL"]["presence"]
 HAL_VOICE=character_config["HAL"]["voice"]
 HAL_LIMIT=character_config["HAL"]["limit"]
+
+TOBIAS_MODEL = character_config["tobias"]["model"]
+TOBIAS_TEMPERATURE = character_config["tobias"]["temperature"]
+TOBIAS_FREQUENCY=character_config["tobias"]["frequency"]
+TOBIAS_PRESENCE=character_config["tobias"]["presence"]
+TOBIAS_VOICE=character_config["tobias"]["voice"]
+TOBIAS_LIMIT=character_config["tobias"]["limit"]
 
 message_memory=[
     {"role": "developer", "content": DEFAULT_SYSTEM_MESSAGE}
@@ -370,6 +399,15 @@ async def hal(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
     set_character(HAL_MODEL,HAL_TEMPERATURE,HAL_FREQUENCY,HAL_PRESENCE,HAL_VOICE,HAL_LIMIT,HAL_SYSTEM_MESSAGE)
     info_str=f"Die bisherige Konversation wurde gelöscht und HAL ist da."
+    logging.info(info_str)
+    response = await get_chatgpt_response(f"{interaction.user.display_name}: Hallo")
+    await interaction.followup.send(response)
+
+@tree.command(name="tobias", description="Löscht den aktuellen Chat und startet einen Chat mit Tobias",guild=discord.Object(id=1150429390015037521))
+async def hal(interaction: discord.Interaction):
+    await interaction.response.defer(thinking=True)
+    set_character(TOBIAS_MODEL,TOBIAS_TEMPERATURE,TOBIAS_FREQUENCY,TOBIAS_PRESENCE,TOBIAS_VOICE,TOBIAS_LIMIT,TOBIAS_SYSTEM_MESSAGE)
+    info_str=f"Die bisherige Konversation wurde gelöscht und Tobias ist da."
     logging.info(info_str)
     response = await get_chatgpt_response(f"{interaction.user.display_name}: Hallo")
     await interaction.followup.send(response)
