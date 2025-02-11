@@ -31,6 +31,7 @@ except OSError:
 
 character_config = {
     "reset_sec": 60*60*8,
+    "max_completion_tokens": 1200,
     "ChatGPT":{
         "system-message-file":"ChatGPT.txt",
         "model":"gpt-4o-mini",
@@ -296,7 +297,7 @@ async def get_chatgpt_response(prompt):
             temperature=temperature,
             frequency_penalty=frequency,
             presence_penalty=presence,
-            max_tokens=1200
+            max_completion_tokens=character_config["max_completion_tokens"]
         )
         logging.debug(f"API-Response received: {response}")
         antwort=response.choices[0].message.content
