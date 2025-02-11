@@ -5,7 +5,7 @@ import json
 import logging
 import threading
 import sys
-import asyncio,os
+import asyncio,os,shutil
 import string
 from typing import Literal
 from ffmpeg import FFmpeg
@@ -13,8 +13,10 @@ from datetime import datetime
 import random,re
 import traceback
 
-
-logging.basicConfig(filename="ChatGPT-DcBot.log",filemode="w",format="%(asctime)s %(levelname)s: %(message)s",level=logging.DEBUG)
+log_filename="ChatGPT-DcBot.log"
+if(os.path.isfile(log_filename)):
+    shutil.copy(log_filename,f"old_{log_filename}")
+logging.basicConfig(filename=log_filename,filemode="w",format="%(asctime)s %(levelname)s: %(message)s",level=logging.DEBUG)
 
 logging.info("Loading keys")
 try:
@@ -403,8 +405,8 @@ async def hal(interaction: discord.Interaction):
     response = await get_chatgpt_response(f"{interaction.user.display_name}: Hallo")
     await interaction.followup.send(response)
 
-@tree.command(name="tobias", description="Löscht den aktuellen Chat und startet einen Chat mit Tobias",guild=discord.Object(id=1150429390015037521))
-async def hal(interaction: discord.Interaction):
+@tree.command(name="tobias88", description="Löscht den aktuellen Chat und startet einen Chat mit Tobias",guild=discord.Object(id=1150429390015037521))
+async def tobias(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
     set_character(TOBIAS_MODEL,TOBIAS_TEMPERATURE,TOBIAS_FREQUENCY,TOBIAS_PRESENCE,TOBIAS_VOICE,TOBIAS_LIMIT,TOBIAS_SYSTEM_MESSAGE)
     info_str=f"Die bisherige Konversation wurde gelöscht und Tobias ist da."
@@ -567,6 +569,8 @@ Mit `/peter_box` kannst du den aktuellen Chat löschen und stattdessen mit __Pet
 
 Mit `/schneutsch` kannst du den aktuellen Chat löschen und mit dem __Schneutsch-Lexikon__ reden.
 
+Mit `/tobias88` kannst du den aktuellen Chat löschen und stattdessen mit __Tobias88__ reden.
+
 Mit `/vorlesen` kannst du die letzte Chatnachricht vorlesen lassen. (*Wenn in VC, Audio wird ebenfalls generiert im Chat.*)
 
 Mit **Rechtsklick** bei **Apps** auf __erneut vorlesen__ kannst du schon vom Bot generierte Audios erneut vorlesen lassen.
@@ -579,9 +583,11 @@ Mit `/info` kannst du dir anzeigen lassen, wie viel Token der derzeitige Chat ko
 
 Mit `/error` kannst du dir den letzten aufgetretenen Fehler anzeigen lassen.
 
+Der __ChatGPT-DcBot__ kann Interaktiv in einer Unterhaltung mit mehreren Chat Teilnehmern gleichzeitig schreiben, ohne das ein **Clear** nötig ist!
+
 Bei Fragen kann man den Admin des Servers anschreiben, oder ein Thread öffnen bei "__hilfe__" und dort nach Hilfe Fragen.
 
-Sonst viel Spaß mit dem Bot :)"""
+*Sonst viel Spaß mit dem Bot :)*"""
     logging.info("sending help text")
     await interaction.response.send_message(help_text)
 
