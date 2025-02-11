@@ -297,7 +297,7 @@ async def get_chatgpt_response(prompt):
             temperature=temperature,
             frequency_penalty=frequency,
             presence_penalty=presence,
-            max_completion_tokens=character_config["max_completion_tokens"]
+            max_tokens=character_config["max_completion_tokens"]
         )
         logging.debug(f"API-Response received: {response}")
         antwort=response.choices[0].message.content
