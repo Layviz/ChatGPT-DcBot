@@ -161,7 +161,7 @@ class Character:
         active_character = self
         info_str=f"Die bisherige Konversation wurde gelöscht und {self.name} ist erschienen."
         logging.info(info_str)
-        response = await self.chat()
+        response = await self.chat("HALLO",interaction.user.display_name)
         msgs = partion_discord_message(response)
         for msg in msgs:
             await interaction.followup.send(msg)
