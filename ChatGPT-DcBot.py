@@ -153,6 +153,7 @@ class Character:
             global last_exception
             last_exception = e
             logging.exception("unkown Error")
+            return "Bei der Verarbeitung ist ein Fehler aufgetreten"
         
     async def set_char(self, interaction: discord.Interaction):
         global active_character
@@ -449,7 +450,7 @@ Bei Fragen kann man den Admin des Servers anschreiben, oder ein Thread öffnen b
     await interaction.response.send_message(help_text)
 
 @tree.command(name="zotate", description="Erzeugt eine Geschichte aus zufälligen Zotaten",guild=discord.Object(id=secrets["discord.guild_id"]))
-async def zotate(interaction: discord.Interaction):
+async def zotate_cmd(interaction: discord.Interaction):
     global used_zotate,zotate
     await interaction.response.defer(thinking=True)
     num_zitate = 7
