@@ -363,7 +363,13 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
             if voice_channel!=None:
                 audio =discord.FFmpegOpusAudio(tempfile)
                 vc = await voice_channel.connect()
-                vc.play(audio)
+                vc.play(audio,
+                        application='voip',
+                        bitrate=512,
+                        fec=True,
+                        expected_packet_loss=0.25,
+                        bandwidth='full',
+                        signal_type='music')
                 while vc.is_playing() and vc.is_connected():
                     await asyncio.sleep(1)
                 # disconnect after the player has finished
@@ -398,7 +404,13 @@ async def erneut_vorlesen(interaction: discord.Interaction, message: discord.Mes
                     try:
                         audio = discord.FFmpegPCMAudio(message.attachments[0].url,executable="ffmpeg")
                         vc = await interaction.user.voice.channel.connect()
-                        vc.play(audio)
+                        vc.play(audio,
+                            application='voip',
+                            bitrate=512,
+                            fec=True,
+                            expected_packet_loss=0.25,
+                            bandwidth='full',
+                            signal_type='music')
                         await interaction.followup.send("Nachricht wird erneut vorgelesen.",ephemeral=True)
                         while vc.is_playing() and vc.is_connected():
                             await asyncio.sleep(1)
