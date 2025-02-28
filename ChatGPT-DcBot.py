@@ -298,10 +298,12 @@ async def error_message(interaction: discord.Interaction):
         info_str="Es wurde kein Fehler festgestellt"
         await interaction.response.send_message(info_str)
 
+voice_client:discord.VoiceClient = None
+
 @tree.command(name="vorlesen", description="Liest die letzte Nachricht vor.",guild=discord.Object(id=secrets["discord.guild_id"]))
 @discord.app_commands.describe(stimme="Hiermit kann eine andere Stimme zum vorlesen ausgewählt werden")
 async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Finn","Greta","Giesela","Lisa","Peter","Carol","Karen"]=None):
-    global last_message_read, last_voice, audio_semaphore, last_exception, error
+    global last_message_read, last_voice, audio_semaphore, last_exception, error, voice_client
     logging.debug("called vorlesen")
     message_to_read = active_character.get_last_message()
     if message_to_read == -1:
@@ -338,7 +340,7 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
         elif stimme == "Karen":
             current_voice="coral"
         else:
-            current_voice=voice
+            current_voice=active_character.voice
     if audio_semaphore.acquire(blocking=False):
         try:
             if hash(message_to_read) != last_message_read or last_voice != current_voice:
@@ -362,18 +364,18 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
                     await interaction.followup.send("Nachricht wird erneut vorgelesen")
             if voice_channel!=None:
                 audio =discord.FFmpegOpusAudio(tempfile)
-                vc = await voice_channel.connect()
-                vc.play(audio,
+                voice_client = await voice_channel.connect()
+                voice_client.play(audio,
                         application='voip',
-                        bitrate=512,
+                        bitrate=256,
                         fec=True,
                         expected_packet_loss=0.25,
                         bandwidth='full',
                         signal_type='music')
-                while vc.is_playing() and vc.is_connected():
+                while (voice_client.is_paused() or voice_client.is_playing()) and voice_client.is_connected():
                     await asyncio.sleep(1)
                 # disconnect after the player has finished
-                await vc.disconnect()
+                await voice_client.disconnect()
             else:
                 logging.error(f"{user.display_name} ist nicht in einem Voice Channel")
         except BadRequestError as e:
@@ -389,13 +391,14 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
             await interaction.followup.send("Es ist ein unbekannter Fehler aufgetreten.")
         finally:
             audio_semaphore.release()
+            voice_client = None
     else:
         await interaction.followup.send("Der Bot liest noch vor. Versuche es später nochmal.")
     
 
 @tree.context_menu(name="erneut vorlesen",guild=discord.Object(id=secrets["discord.guild_id"]))
 async def erneut_vorlesen(interaction: discord.Interaction, message: discord.Message):
-    global audio_semaphore
+    global audio_semaphore, voice_client
     if message.author.id == bot.user.id:
         if len(message.attachments) == 1 and message.attachments[0].content_type == "audio/mpeg": 
             await interaction.response.defer(thinking=True,ephemeral=True)
@@ -403,21 +406,22 @@ async def erneut_vorlesen(interaction: discord.Interaction, message: discord.Mes
                 if audio_semaphore.acquire(blocking=False):
                     try:
                         audio = discord.FFmpegPCMAudio(message.attachments[0].url,executable="ffmpeg")
-                        vc = await interaction.user.voice.channel.connect()
-                        vc.play(audio,
+                        voice_client = await interaction.user.voice.channel.connect()
+                        voice_client.play(audio,
                             application='voip',
-                            bitrate=512,
+                            bitrate=256,
                             fec=True,
                             expected_packet_loss=0.25,
                             bandwidth='full',
                             signal_type='music')
                         await interaction.followup.send("Nachricht wird erneut vorgelesen.",ephemeral=True)
-                        while vc.is_playing() and vc.is_connected():
+                        while (voice_client.is_paused() or voice_client.is_playing()) and voice_client.is_connected():
                             await asyncio.sleep(1)
                         # disconnect after the player has finished
-                        await vc.disconnect()
+                        await voice_client.disconnect()
                     finally:
                         audio_semaphore.release()
+                        voice_client = None
                 else:
                     await interaction.followup.send("Der Bot liest noch vor. Versuche es später nochmal.",ephemeral=True)
             else:
@@ -427,6 +431,50 @@ async def erneut_vorlesen(interaction: discord.Interaction, message: discord.Mes
             await interaction.response.send_message("Wähle eine Nachricht mit einer vorgelesenen Audio",ephemeral=True)
     else:
         await interaction.response.send_message("Das ist keine Nachricht vom ChatGPT-DcBot!",ephemeral=True)
+
+@tree.command(name="play-pause",description="Pausiert Vorlesen",guild=discord.Object(id=secrets["discord.guild_id"]))
+async def pause_cmd(interaction: discord.Interaction):
+    await pause(interaction)
+
+async def pause(interaction: discord.Interaction):
+    global voice_client
+    logging.debug(f"voice is {voice_client} and playing = {voice_client.is_playing() if voice_client is not None else None}")
+    if voice_client is not None:
+        if voice_client.is_playing():
+            voice_client.pause()
+            await interaction.response.send_message("Vorlesen pausiert",ephemeral=True,delete_after=60*60*8)
+        elif voice_client.is_paused():
+            voice_client.resume()
+            await interaction.response.send_message("Vorlesen fortgesetzt",ephemeral=True,delete_after=60*60*8)
+    else:
+        await interaction.response.send_message("Es wird gerade nicht vorgelesen",ephemeral=True,delete_after=60*60*8)
+
+@tree.context_menu(name="play/pause",guild=discord.Object(id=secrets["discord.guild_id"]))
+async def context_pause(interaction:discord.Interaction, user :discord.User):
+    if user.id == bot.user.id:
+        await pause(interaction)
+    else:
+        await interaction.response.send_message(f"Diese Funktion ist nur für {bot.user.display_name} gedacht.",ephemeral=True,delete_after=60*60*8)
+
+# @tree.command(name="play",description="Pausiertes Vorlesen fortsetzen",guild=discord.Object(id=secrets["discord.guild_id"]))
+# async def play_cmd(interaction: discord.Interaction):
+#     await play(interaction)
+
+# async def play(interaction: discord.Interaction):
+#     global voice_client
+#     logging.debug(f"voice is {voice_client} and paused = {voice_client.is_paused() if voice_client is not None else None}")
+#     if voice_client is not None and voice_client.is_paused():
+#         voice_client.resume()
+#         await interaction.response.send_message("Vorlesen fortgesetzt",ephemeral=True)
+#     else:
+#         await interaction.response.send_message("Vorlesen ist nicht pausiert",ephemeral=True)
+
+# @tree.context_menu(name="play",guild=discord.Object(id=secrets["discord.guild_id"]))
+# async def context_play(interaction:discord.Interaction, user :discord.User):
+#     if user.id == bot.user.id:
+#         await play(interaction)
+#     else:
+#         await interaction.response.send_message(f"Diese Funktion ist nur für {bot.user.display_name} gedacht.",ephemeral=True)
 
 @tree.command(name="help", description="Zeigt die Hilfe an",guild=discord.Object(id=secrets["discord.guild_id"]))
 async def hilfe(interaction: discord.Interaction):
@@ -448,7 +496,13 @@ Mit `/vorlesen` kannst du die letzte Chatnachricht vorlesen lassen. (*Wenn in VC
 
 Mit **Rechtsklick** bei **Apps** auf __erneut vorlesen__ kannst du schon vom Bot generierte Audios erneut vorlesen lassen.
 
+Mit `/play-pause` kannst du das Vorlesen pausieren oder wieder fortsetzen. (*Apps __play/pause__ macht das gleiche.*)
+
+Mit **Rechtsklick** auf den **ChatGPT-DcBot** bei Apps __play/pause__ kannst du das Vorlesen pausieren oder wieder fortsetzen.
+
 Mit `/help` kannst du den Bot nach Hilfe Fragen.
+
+Mit `/clear` kannst du den aktuellen Chat löschen.
 
 Mit `/info` kannst du dir anzeigen lassen, wie viel Token der derzeitige Chat kostet.
 
