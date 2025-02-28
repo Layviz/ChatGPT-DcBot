@@ -1,1 +1,7 @@
 keys.json
+config.json
+*.txt
+*.mp3
+*.opus
+*.log
+synced
