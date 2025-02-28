@@ -491,10 +491,12 @@ async def zotate_cmd(interaction: discord.Interaction):
 
 
 @bot.event
-async def on_message(message):
-    global timer,total_messages
+async def on_message(message:discord.Message):
+    global timer,zotate
     logging.debug("on_message event registered")
     logging.debug(f"mentions {message.mentions}")
+    if message.channel.id == ZOTATE_CHANNEL and zotate is not None:
+        zotate.append(message)
     if bot.user in message.mentions:
         logging.info("This bot was mentioned!")
         if message.type != discord.MessageType.default and message.type != discord.MessageType.reply:
