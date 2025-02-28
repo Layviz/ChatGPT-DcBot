@@ -239,6 +239,7 @@ async def get_chatgpt_heading(text:str):
     except:
         return "Nachricht.mp3"
 
+
 @bot.event
 async def on_ready():
     global ZOTATE_CHANNEL
