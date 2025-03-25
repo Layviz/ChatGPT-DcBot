@@ -46,7 +46,8 @@ character_config = {
         "frequency":1.0,
         "presence":1.0,
         "voice":"nova",
-        "limit":60000
+        "limit":60000,
+        "audio-model": "tts-1"
     }
 }
 
@@ -90,7 +91,7 @@ client = AsyncOpenAI(
 )
 
 class Character:
-    def __init__(self,name,developer_message,model,temperature,frequency,presence,voice,limit):
+    def __init__(self,name,developer_message,model,temperature,frequency,presence,voice,audio_model,limit):
         self.name=name
         self.dev_message=developer_message
         self.model=model
@@ -99,6 +100,7 @@ class Character:
         self.presence=presence
         self.voice=voice
         self.token_limit=limit
+        self.audio_model=audio_model
         self.clear()
         logging.debug(f"{name}: {model}, {temperature} {frequency} {presence} {voice} {limit}")
         
@@ -194,6 +196,7 @@ for character in character_config:
                 character_config[character]["frequency"],
                 character_config[character]["presence"],
                 character_config[character]["voice"],
+                character_config[character]["audio-model"],
                 character_config[character]["limit"])
     
     char.set_char = tree.command(name=character.lower(),description=f"Löscht den aktuellen Chat und startet einen Chat mit {character}",guild=discord.Object(id=secrets["discord.guild_id"]))(char.set_char)
@@ -302,7 +305,7 @@ voice_client:discord.VoiceClient = None
 
 @tree.command(name="vorlesen", description="Liest die letzte Nachricht vor.",guild=discord.Object(id=secrets["discord.guild_id"]))
 @discord.app_commands.describe(stimme="Hiermit kann eine andere Stimme zum vorlesen ausgewählt werden")
-async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Finn","Greta","Giesela","Lisa","Peter","Carol","Karen"]=None):
+async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Finn","Greta","Giesela","Lisa","Peter","Carol","Karen","Timmy"]=None):
     global last_message_read, last_voice, audio_semaphore, last_exception, error, voice_client
     logging.debug("called vorlesen")
     message_to_read = active_character.get_last_message()
@@ -339,13 +342,17 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
             current_voice="sage"
         elif stimme == "Karen":
             current_voice="coral"
+        elif stimme == "Timmy":
+            current_voice="ballad"
+        elif stimme == "Klaus":
+            current_voice="verse"
         else:
             current_voice=active_character.voice
     if audio_semaphore.acquire(blocking=False):
         try:
             if hash(message_to_read) != last_message_read or last_voice != current_voice:
                 logging.info("new voice message will be generated")
-                response = await client.audio.speech.create(model="tts-1",voice=current_voice,input=message_to_read,response_format='opus')
+                response = await client.audio.speech.create(model=active_character.audio_model,voice=current_voice,input=message_to_read,response_format='opus')
                 response.stream_to_file(tempfile)
                 if os.path.exists(convfile): 
                     os.remove(convfile)
