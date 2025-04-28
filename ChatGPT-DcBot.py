@@ -295,7 +295,7 @@ async def error_message(interaction: discord.Interaction):
         info_str=f"Fehlercode: {error.status_code} / {error.code}\nNachricht: {error.message}"
         await interaction.response.send_message(info_str)
     if last_exception:
-        info_str=f"Folgender Trace wurde aufgezeichnet: ````\n{traceback.format_exc()}\n```"
+        info_str=f"Folgender Trace wurde aufgezeichnet: ````\n{''.join(traceback.format_exception(last_exception))}\n```"
         await interaction.response.send_message(info_str)
     if error is None and last_exception is None:
         info_str="Es wurde kein Fehler festgestellt"
