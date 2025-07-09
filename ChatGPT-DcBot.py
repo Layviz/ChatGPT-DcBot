@@ -245,7 +245,7 @@ async def get_chatgpt_heading(text:str):
 
 @bot.event
 async def on_ready():
-    global ZOTATE_CHANNEL
+    global ZOTATE_CHANNEL,zotate
     if sync_flag:
         commands = await tree.sync(guild=discord.Object(id=secrets["discord.guild_id"]))
         print("Synced Commands:")
@@ -263,6 +263,7 @@ async def on_ready():
     ZOTATE_CHANNEL = bot.get_channel(secrets["discord.zotate_id"])
     if ZOTATE_CHANNEL is None:
         logging.error("zotate Channel was not found!")
+    zotate = [message async for message in ZOTATE_CHANNEL.history(limit=None)]
     logging.info(f'{bot.user.name} ist bereit!')
 
 def partion_discord_message(msg:str,):
@@ -284,7 +285,7 @@ def timed_clear():
 @tree.command(name="info", description="Zeigt an wie viele Tokens der derzeitige Chat kostet.",guild=discord.Object(id=secrets["discord.guild_id"]))
 async def info(interaction: discord.Interaction):
     messages_len = len(active_character.message_memory)
-    info_str=f"Diese Konversation besteht aus {active_character.total_messages} Nachrichten und zur Zeit aus {messages_len} Nachrichten. Das entspricht {active_character.total_token} Tokens."
+    info_str=f"Diese Konversation besteht aus {active_character.total_messages} Nachrichten und zur Zeit sind {messages_len} Nachrichten im aktuellen Kontext. Das entspricht {active_character.total_token} Tokens. Der aktive Character ist {active_character.name} und verwendet das Model {active_character.model}."
     logging.info(info_str)
     await interaction.response.send_message(info_str)
 
