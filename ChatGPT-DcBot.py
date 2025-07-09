@@ -286,7 +286,7 @@ def timed_clear():
 @tree.command(name="info", description="Zeigt an wie viele Tokens der derzeitige Chat kostet.",guild=discord.Object(id=secrets["discord.guild_id"]))
 async def info(interaction: discord.Interaction):
     messages_len = len(active_character.message_memory)
-    info_str=f"""\nAktiver Character: **{active_character.name}**
+    info_str=f"""​\nAktiver Character: **{active_character.name}**
 Verwendetes Model: **{active_character.model}**
 Audio Model: **{active_character.audio_model}**
 Aktuelle Tokens: **{active_character.total_token}**
