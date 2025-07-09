@@ -108,6 +108,7 @@ class Character:
         self.message_memory=[{"role": "developer", "content": self.dev_message}]
         self.total_token=0
         self.total_messages=0
+        self.audio_count=0
 
     def get_last_message(self):
         if len(self.message_memory) <= 1:
@@ -285,7 +286,13 @@ def timed_clear():
 @tree.command(name="info", description="Zeigt an wie viele Tokens der derzeitige Chat kostet.",guild=discord.Object(id=secrets["discord.guild_id"]))
 async def info(interaction: discord.Interaction):
     messages_len = len(active_character.message_memory)
-    info_str=f"Diese Konversation besteht aus {active_character.total_messages} Nachrichten und zur Zeit sind {messages_len} Nachrichten im aktuellen Kontext. Das entspricht {active_character.total_token} Tokens. Der aktive Character ist {active_character.name} und verwendet das Model {active_character.model}."
+    info_str=f"""\nAktiver Character: **{active_character.name}**
+Verwendetes Model: **{active_character.model}**
+Audio Model: **{active_character.audio_model}**
+Aktuelle Tokens: **{active_character.total_token}**
+Nachrichten im Kontext: **{messages_len}**
+Gesamtanzahl Nachrichten: **{active_character.total_messages}**
+Generierte Audios: **{active_character.audio_count}**"""
     logging.info(info_str)
     await interaction.response.send_message(info_str)
 
@@ -296,7 +303,7 @@ async def error_message(interaction: discord.Interaction):
         info_str=f"Fehlercode: {error.status_code} / {error.code}\nNachricht: {error.message}"
         await interaction.response.send_message(info_str)
     if last_exception:
-        info_str=f"Folgender Trace wurde aufgezeichnet: ````\n{''.join(traceback.format_exception(last_exception))}\n```"
+        info_str=f"Folgender Trace wurde aufgezeichnet: ```\n{''.join(traceback.format_exception(last_exception))}\n```"
         await interaction.response.send_message(info_str)
     if error is None and last_exception is None:
         info_str="Es wurde kein Fehler festgestellt"
@@ -366,6 +373,7 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
                 logging.debug("Sent followup mesage")
                 last_message_read = hash(message_to_read)
                 last_voice = current_voice
+                active_character.audio_count+=1
             else:
                 if voice_channel!=None:
                     logging.warning("existing Message is read again")
