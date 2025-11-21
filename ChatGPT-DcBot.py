@@ -552,8 +552,8 @@ async def zotate_cmd(interaction: discord.Interaction):
         #     random_before = ZOTATE_START + timedelta(random_days+1)
         #     messages  = [message async for message in ZOTATE_CHANNEL.history(after=random_after,before=random_before,limit=None)]
         
-
-        msg = zotate[random.randint(0,len(zotate)-1)]
+        random_index = random.randint(0,len(zotate)-1)
+        msg = zotate[random_index]
         from_this_date = used_dates.get(msg.created_at.date(),0) 
         if from_this_date >= 3:
             continue
@@ -562,6 +562,7 @@ async def zotate_cmd(interaction: discord.Interaction):
             used_zotate.append(msg.id)
             used_dates[msg.created_at.date()] = from_this_date+1
             randoms.append(re_match.group(1))
+            zotate.pop(random_index)
             #logging.debug(f"gewähltes Zotat vom {msg.created_at.strftime("%d.%m.%Y, %H:%M:%S")}: \"{re_match.group(1)}\"")
 
     content = await active_character.chat("Erzähl eine Geschichte und verwende dabei diese Zitate:\n"+"\n".join(randoms))
