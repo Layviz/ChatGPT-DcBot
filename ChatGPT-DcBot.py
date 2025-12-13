@@ -6,7 +6,7 @@ import logging
 import threading
 import sys
 import asyncio,os,shutil
-import string
+import string, io
 from typing import Literal
 from ffmpeg import FFmpeg
 from datetime import datetime
@@ -301,10 +301,13 @@ async def error_message(interaction: discord.Interaction):
     global error,last_exception
     if error:
         info_str=f"Fehlercode: {error.status_code} / {error.code}\nNachricht: {error.message}"
-        await interaction.response.send_message(info_str)
+        msgs = partion_discord_message(info_str)
+        for msg in msgs:    
+            await interaction.response.send_message(msg)
     if last_exception:
-        info_str=f"Folgender Trace wurde aufgezeichnet: ```\n{''.join(traceback.format_exception(last_exception))}\n```"
-        await interaction.response.send_message(info_str)
+        info_str=f"Folgender Trace wurde aufgezeichnet:"
+        trace = ''.join(traceback.format_exception(last_exception))
+        await interaction.response.send_message(info_str,file=discord.File(fp=io.StringIO(trace),filename="trace.txt"))
     if error is None and last_exception is None:
         info_str="Es wurde kein Fehler festgestellt"
         await interaction.response.send_message(info_str)
@@ -381,17 +384,21 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
             if voice_channel!=None:
                 audio =discord.FFmpegOpusAudio(tempfile)
                 voice_client = await voice_channel.connect()
-                voice_client.play(audio,
-                        application='voip',
-                        bitrate=256,
-                        fec=True,
-                        expected_packet_loss=0.25,
-                        bandwidth='full',
-                        signal_type='music')
-                while (voice_client.is_paused() or voice_client.is_playing()) and voice_client.is_connected():
-                    await asyncio.sleep(1)
-                # disconnect after the player has finished
-                await voice_client.disconnect()
+                if voice_client.is_connected():
+                    voice_client.play(audio,
+                            application='voip',
+                            bitrate=256,
+                            fec=True,
+                            expected_packet_loss=0.25,
+                            bandwidth='full',
+                            signal_type='music')
+                    while (voice_client.is_paused() or voice_client.is_playing()) and voice_client.is_connected():
+                        await asyncio.sleep(1)
+                    # disconnect after the player has finished
+                    await voice_client.disconnect()
+                else:
+                    logging.error("Voice client is not connected")
+                    await interaction.followup.send("Es ist ein Fehler aufgetreten. Der Bot konnte dem Voice Channel nicht beitreten.")
             else:
                 logging.error(f"{user.display_name} ist nicht in einem Voice Channel")
         except BadRequestError as e:
@@ -401,6 +408,10 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
             last_exception = e
             logging.exception("ClientException")
             await interaction.followup.send("Es ist ein Fehler aufgetreten. Der Bot scheint bereits im Voice Chat zu sein.")
+        except asyncio.TimeoutError as e:
+            last_exception = e
+            logging.exception("TimeoutError")
+            await interaction.followup.send("Der Bot konnte dem Voice Channel nicht beitreten. Es ist ein Timeout beim Verbinden zum Voice Server aufgetreten.")
         except Exception as e:
             last_exception = e
             logging.exception("Unkown error")
