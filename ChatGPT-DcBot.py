@@ -590,28 +590,37 @@ async def zotate_cmd(interaction: discord.Interaction):
 
 @tree.command(name="video", description="Generiert ein Video",guild=discord.Object(id=secrets["discord.guild_id"]))
 async def video(interaction: discord.Interaction, prompt:str, dauer:Literal['4','8','12']='4',auflösung:Literal["720x1280","1280x720"]="720x1280"):#"1024x1792","1792x1024" for sora-2-pro
-    global video_error
-    logging.debug(f"Parameter prompt: {prompt}, dauer: {dauer},{type(dauer)}, auflösung: {auflösung}.{type(auflösung)}")
-    await interaction.response.defer(thinking=True)
-    video = await client.videos.create(prompt=prompt,seconds=str(dauer),size=auflösung,model="sora-2")
-    logging.info("Video generation started")
-    while video.status in ["in_progress","queued"]:
-        await asyncio.sleep(5)
-        video = await client.videos.retrieve(video.id)
-        logging.debug(f"Video status: {video.status}, progress: {video.progress}%")
+    global video_error,last_exception
+    if len(prompt)>32000:
+        await interaction.response.send_message("Der Prompt darf maximal 32000 Zeichen lang sein.")
+        return
+    try:
+        logging.debug(f"Parameter prompt: {prompt}, dauer: {dauer},{type(dauer)}, auflösung: {auflösung}.{type(auflösung)}")
+        await interaction.response.defer(thinking=True)
+        video = await client.videos.create(prompt=prompt,seconds=str(dauer),size=auflösung,model="sora-2")
+        logging.info("Video generation started")
+        logging.debug(f"Video ID: {video.id}")
+        while video.status in ["in_progress","queued"]:
+            await asyncio.sleep(5)
+            video = await client.videos.retrieve(video.id)
+            logging.debug(f"Video status: {video.status}, progress: {video.progress}%")
 
-    if video.status == "failed":
-        message = getattr(getattr(video, "error", None), "message", "Video generation failed")
-        video_error = message
-        logging.error("Video generation failed: {message}")
-        await interaction.followup.send("Die Videoerstellung ist fehlgeschlagen.")
-    else:
-        logging.info("Video generation completed")
-        content =  await client.videos.download_content(video_id=video.id,variant="video")
-        content.write_to_file("temp.mp4")
-        logging.info("Video downloaded")
-        file = discord.File("temp.mp4",filename="video.mp4")
-        await interaction.followup.send("Hier ist das generierte Video:",file=file)
+        if video.status == "failed":
+            message = getattr(getattr(video, "error", None), "message", "Video generation failed")
+            video_error = message
+            logging.error("Video generation failed: {message}")
+            await interaction.followup.send("Die Videoerstellung ist fehlgeschlagen.")
+        else:
+            logging.info("Video generation completed")
+            content =  await client.videos.download_content(video_id=video.id,variant="video")
+            content.write_to_file("temp.mp4")
+            logging.info("Video downloaded")
+            file = discord.File("temp.mp4",filename=f"{video.id}.mp4")
+            await interaction.followup.send("Hier ist das generierte Video:",file=file)
+    except Exception as e:
+        last_exception = e
+        logging.exception("Error during video generation")
+        await interaction.followup.send("Es ist ein Fehler bei der Videoerstellung aufgetreten. Verwende `/error` um mehr zu erfahren.")
 
 @bot.event
 async def on_message(message:discord.Message):
