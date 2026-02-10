@@ -2,6 +2,7 @@ keys.json
 config.json
 *.txt
 *.mp3
+*.mp4
 *.opus
 *.log
 synced
