@@ -81,6 +81,7 @@ timer = None
 error = None
 video_error = None
 last_exception = None
+voicechat_vorlesen = True
 
 RESET_TIMER=character_config["general"]["reset_sec"]
 
@@ -385,7 +386,7 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
                 if voice_channel!=None:
                     logging.warning("existing Message is read again")
                     await interaction.followup.send("Nachricht wird erneut vorgelesen")
-            if voice_channel!=None:
+            if voice_channel!=None and voicechat_vorlesen:
                 audio =discord.FFmpegOpusAudio(tempfile)
                 voice_client = await voice_channel.connect()
                 if voice_client.is_connected():
@@ -405,7 +406,10 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
                     logging.error("Voice client is not connected")
                     await interaction.followup.send("Es ist ein Fehler aufgetreten. Der Bot konnte dem Voice Channel nicht beitreten.")
             else:
-                logging.error(f"{user.display_name} ist nicht in einem Voice Channel")
+                if voice_channel==None:
+                    logging.error(f"{user.display_name} ist nicht in einem Voice Channel")
+                elif not voicechat_vorlesen:
+                    logging.info("Voice Chat Vorlesen ist deaktiviert, daher wird nicht vorgelesen")
         except BadRequestError as e:
             error = e
             await interaction.followup.send("Es ist ein Fehler aufgetreten. Verwende `/error` um mehr zu erfahren.")
@@ -589,6 +593,14 @@ async def zotate_cmd(interaction: discord.Interaction):
         content = content[index+1:]
     await interaction.followup.send(content)
 
+@tree.command(name="channel-vorlesen", description="Aktiviert/Deaktiviert das Vorlesen im Voice Chat",guild=discord.Object(id=secrets["discord.guild_id"]))
+async def vorlesen_toggle(interaction:discord.Interaction,status:Literal["ein","aus"]):
+    global voicechat_vorlesen
+    voicechat_vorlesen = status == "ein"
+    if status == "ein":
+        await interaction.response.send_message("Vorlesen im Voice Chat ist nun aktiviert.")
+    else:
+        await interaction.response.send_message("Vorlesen im Voice Chat ist nun deaktiviert.")
 
 @tree.command(name="video", description="Generiert ein Video",guild=discord.Object(id=secrets["discord.guild_id"]))
 async def video(interaction: discord.Interaction, prompt:str, dauer:Literal['4','8','12']='4',auflösung:Literal["720x1280","1280x720"]="720x1280"):#"1024x1792","1792x1024" for sora-2-pro
