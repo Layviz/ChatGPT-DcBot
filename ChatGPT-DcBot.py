@@ -294,7 +294,8 @@ Audio Model: **{active_character.audio_model}**
 Aktuelle Tokens: **{active_character.total_token}**
 Nachrichten im Kontext: **{messages_len}**
 Gesamtanzahl Nachrichten: **{active_character.total_messages}**
-Generierte Audios: **{active_character.audio_count}**"""
+Generierte Audios: **{active_character.audio_count}**
+Vorlesen im Voice Chat: **{"aktiviert" if voicechat_vorlesen else "deaktiviert"}**"""
     logging.info(info_str)
     await interaction.response.send_message(info_str)
 
@@ -527,11 +528,13 @@ Mit `/peter_box` kannst du den aktuellen Chat löschen und stattdessen mit __Pet
 
 Mit `/schneutsch` kannst du den aktuellen Chat löschen und mit dem __Schneutsch-Lexikon__ reden.
 
-Mit `/tobias88` kannst du den aktuellen Chat löschen und stattdessen mit __Tobias88__ reden.
+Mit `/schmiddi88` kannst du den aktuellen Chat löschen und stattdessen mit __Schmiddi88__ reden.
 
-Mit `/vorlesen` kannst du die letzte Chatnachricht vorlesen lassen. (*Wenn in VC, Audio wird ebenfalls generiert im Chat.*)
+Mit `/vorlesen` kannst du die letzte Chatnachricht vorlesen lassen. Optional kann die Stimme zum Vorlesen ausgewählt werden. (*Wenn in VC, Audio wird ebenfalls generiert im Chat.*)
 
-Mit **Rechtsklick** bei **Apps** auf __erneut vorlesen__ kannst du schon vom Bot generierte Audios erneut vorlesen lassen.
+Mit `/channel-vorlesen` kannst du auswählen ob das Vorlesen im Voice Chat aktiviert oder deaktiviert wird. Standardmäßig ist es aktiviert.
+
+Mit **Rechtsklick** auf eine Nachricht mit Audio findet sich unter **Apps** der Befehl __erneut vorlesen__ mit dem du eine beliebige zuvor vom Bot generierte Audio erneut vorlesen lassen kannst.
 
 Mit `/play-pause` kannst du das Vorlesen pausieren oder wieder fortsetzen. (*Apps __play/pause__ macht das gleiche.*)
 
