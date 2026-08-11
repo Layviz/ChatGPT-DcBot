@@ -389,6 +389,7 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
                 audio =discord.FFmpegOpusAudio(tempfile)
                 voice_client = await voice_channel.connect()
                 if voice_client.is_connected():
+                    await asyncio.sleep(1)
                     voice_client.play(audio,
                             application='voip',
                             bitrate=256,
@@ -438,6 +439,7 @@ async def erneut_vorlesen(interaction: discord.Interaction, message: discord.Mes
                     try:
                         audio = discord.FFmpegPCMAudio(message.attachments[0].url,executable="ffmpeg")
                         voice_client = await interaction.user.voice.channel.connect()
+                        await asyncio.sleep(1)
                         voice_client.play(audio,
                             application='voip',
                             bitrate=256,
