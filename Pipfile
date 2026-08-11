@@ -8,5 +8,6 @@ discord = "*"
 openai = "*"
 pynacl = "*"
 python-ffmpeg = "*"
+davey = "*"
 
 [dev-packages]
