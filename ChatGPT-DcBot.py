@@ -437,7 +437,7 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
 async def erneut_vorlesen(interaction: discord.Interaction, message: discord.Message):
     global audio_semaphore, voice_client
     if message.author.id == bot.user.id:
-        if len(message.attachments) == 1 and message.attachments[0].content_type == "audio/mpeg": 
+        if len(message.attachments) == 1 and (message.attachments[0].content_type == "audio/mpeg" or message.attachments[0].content_type == "audio/mpeg3"): 
             await interaction.response.defer(thinking=True,ephemeral=True)
             if interaction.user.voice.channel:
                 if audio_semaphore.acquire(blocking=False):
@@ -467,6 +467,12 @@ async def erneut_vorlesen(interaction: discord.Interaction, message: discord.Mes
                 await interaction.followup.send("Du bist nicht in einem Voice Channel",ephemeral=True)
         else:
             await interaction.response.send_message("Wähle eine Nachricht mit einer vorgelesenen Audio",ephemeral=True)
+            if len(message.attachments) == 0:
+                logging.debug("message has no attachments")
+            else:
+                logging.debug(f"message has {len(message.attachments)} attachments")
+                for attachment in message.attachments:
+                    logging.debug(f"attachment content type: {attachment.content_type}")
     else:
         await interaction.response.send_message("Das ist keine Nachricht vom ChatGPT-DcBot!",ephemeral=True)
 
