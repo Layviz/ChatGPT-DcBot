@@ -401,6 +401,10 @@ async def vorlesen(interaction: discord.Interaction, stimme:Literal["Steve","Fin
                             signal_type='music')
                     while (voice_client.is_paused() or voice_client.is_playing()) and voice_client.is_connected():
                         await asyncio.sleep(1)
+                        if len(voice_channel.members )== 1:
+                            logging.info("User left the voice channel, stopping playback")
+                            voice_client.stop()
+                            break
                     # disconnect after the player has finished
                     await voice_client.disconnect()
                 else:
@@ -439,11 +443,12 @@ async def erneut_vorlesen(interaction: discord.Interaction, message: discord.Mes
     if message.author.id == bot.user.id:
         if len(message.attachments) == 1 and (message.attachments[0].content_type == "audio/mpeg" or message.attachments[0].content_type == "audio/mpeg3"): 
             await interaction.response.defer(thinking=True,ephemeral=True)
-            if interaction.user.voice.channel:
+            voice_channel = interaction.user.voice.channel if interaction.user.voice else None
+            if voice_channel:
                 if audio_semaphore.acquire(blocking=False):
                     try:
                         audio = discord.FFmpegPCMAudio(message.attachments[0].url,executable="ffmpeg")
-                        voice_client = await interaction.user.voice.channel.connect()
+                        voice_client = await voice_channel.connect()
                         await asyncio.sleep(1)
                         voice_client.play(audio,
                             application='voip',
@@ -455,6 +460,10 @@ async def erneut_vorlesen(interaction: discord.Interaction, message: discord.Mes
                         await interaction.followup.send("Nachricht wird erneut vorgelesen.",ephemeral=True)
                         while (voice_client.is_paused() or voice_client.is_playing()) and voice_client.is_connected():
                             await asyncio.sleep(1)
+                            if len(voice_channel.members )== 1:
+                                logging.info("User left the voice channel, stopping playback")
+                                voice_client.stop()
+                                break
                         # disconnect after the player has finished
                         await voice_client.disconnect()
                     finally:
