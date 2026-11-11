@@ -41,10 +41,11 @@ character_config = {
     },
     "ChatGPT":{
         "system-message-file":"ChatGPT.txt",
-        "model":"gpt-4o-mini",
+        "model":"gpt-6-luna",
         "temperature":1.0,
         "frequency":1.0,
         "presence":1.0,
+        "reasoning": "medium",
         "voice":"nova",
         "limit":60000,
         "audio-model": "tts-1"
@@ -93,21 +94,20 @@ client = AsyncOpenAI(
 )
 
 class Character:
-    def __init__(self,name,developer_message,model,temperature,frequency,presence,voice,audio_model,limit):
+    def __init__(self,name,developer_message,model,temperature,reasoning,voice,audio_model,limit):
         self.name=name
         self.dev_message=developer_message
         self.model=model
         self.temperature=temperature
-        self.frequency=frequency
-        self.presence=presence
+        self.reasoning = reasoning
         self.voice=voice
         self.token_limit=limit
         self.audio_model=audio_model
         self.clear()
-        logging.debug(f"{name}: {model}, {temperature} {frequency} {presence} {voice} {limit}")
+        logging.debug(f"{name}: {model}, {temperature} {reasoning} {voice} {limit}")
         
     def clear(self):
-        self.message_memory=[{"role": "developer", "content": self.dev_message}]
+        self.message_memory=[]
         self.total_token=0
         self.total_messages=0
         self.audio_count=0
@@ -121,23 +121,24 @@ class Character:
                 return message_to_read
         return -2
 
-    async def chat(self,prompt=None,user=None):
+    async def chat(self,prompt=None,user=None, reasoning=None):
         try:
             if prompt:
                 msg={"role": "user", "content": prompt}
                 if user:
-                    msg["user"]=user
+                    msg["content"]=f"{user}: {msg['content']}"
                 self.message_memory.append(msg)
-            response = await client.chat.completions.create(
+            response = await client.responses.create(
                 model=self.model,
-                messages=self.message_memory,
+                instructions=self.dev_message,
+                input=self.message_memory,
                 temperature=self.temperature,
-                frequency_penalty=self.frequency,
-                presence_penalty=self.presence,
-                max_completion_tokens=character_config["general"]["max_completion_tokens"]
+                reasoning={"effort": reasoning if reasoning else self.reasoning},
+                max_output_tokens=character_config["general"]["max_completion_tokens"],
+                store = False,
             )
             logging.debug(f"API-Response received: {response}")
-            antwort=response.choices[0].message.content
+            antwort=response.output_text
             self.message_memory.append({"role":"assistant", "content":antwort})
             self.total_token = response.usage.total_tokens
             logging.debug(f"Total number of tokens is now {self.total_token}")
@@ -196,8 +197,7 @@ for character in character_config:
                 system_message,
                 character_config[character]["model"],
                 character_config[character]["temperature"],
-                character_config[character]["frequency"],
-                character_config[character]["presence"],
+                character_config[character]["reasoning"],                
                 character_config[character]["voice"],
                 character_config[character]["audio-model"],
                 character_config[character]["limit"])
@@ -232,12 +232,13 @@ removed. Also spaces are replaced with underscores.
 
 async def get_chatgpt_heading(text:str):
     try:
-        response = await client.chat.completions.create(model="gpt-4o-mini",messages=[
-            {"role":"system","content":"Gib dem folgenenden Text eine kurze passende einzigartige Überschrift mit maximal 43 Buchstaben."},
+        response = await client.chat.completions.create(model="gpt-6-luna",
+                                                        instructions="Gib dem folgenenden Text eine kurze passende einzigartige Überschrift mit maximal 43 Buchstaben.",
+                                                        messages=[
             {"role":"user","content":text},
         ])
         logging.debug(f" Heading hat {response.usage.completion_tokens} Tokens")
-        antwort=response.choices[0].message.content
+        antwort=response.output_text
         logging.debug(f"Heading für Text ist: {antwort}")
         filename = format_filename(antwort)+".mp3"
         logging.debug(f"Filename = {filename}")
