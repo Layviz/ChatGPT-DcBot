@@ -47,6 +47,7 @@ character_config = {
         "frequency":1.0,
         "presence":1.0,
         "reasoning": "medium",
+        "tools": "none",
         "voice":"nova",
         "limit":60000,
         "audio-model": "tts-1"
@@ -95,12 +96,13 @@ client = AsyncOpenAI(
 )
 
 class Character:
-    def __init__(self,name,developer_message,model,temperature,reasoning,voice,audio_model,limit):
+    def __init__(self,name,developer_message,model,temperature,reasoning,tools,voice,audio_model,limit):
         self.name=name
         self.dev_message=developer_message
         self.model=model
         self.temperature=temperature
         self.reasoning = reasoning
+        self.tools = tools
         self.voice=voice
         self.token_limit=limit
         self.audio_model=audio_model
@@ -136,6 +138,7 @@ class Character:
                 input=self.message_memory,
                 temperature=self.temperature if self.reasoning == "none" else None,
                 reasoning={"effort": reasoning if reasoning else self.reasoning},
+                tools=[{"type": "web_search"}] if self.tools == "web_search" else None,
                 max_output_tokens=character_config["general"]["max_completion_tokens"],
                 store = False,
                 safety_identifier = hash_user if user else None
@@ -200,7 +203,8 @@ for character in character_config:
                 system_message,
                 character_config[character]["model"],
                 character_config[character]["temperature"],
-                character_config[character]["reasoning"],                
+                character_config[character]["reasoning"],
+                character_config[character]["tools"],
                 character_config[character]["voice"],
                 character_config[character]["audio-model"],
                 character_config[character]["limit"])
@@ -301,7 +305,8 @@ Aktuelle Tokens: **{active_character.total_token}**
 Nachrichten im Kontext: **{messages_len}**
 Gesamtanzahl Nachrichten: **{active_character.total_messages}**
 Generierte Audios: **{active_character.audio_count}**
-Vorlesen im Voice Chat: **{"aktiviert" if voicechat_vorlesen else "deaktiviert"}**"""
+Vorlesen im Voice Chat: **{"aktiviert" if voicechat_vorlesen else "deaktiviert"}**
+Web Suche: **{"aktiviert" if active_character.tools == "web_search" else "deaktiviert"}**"""
     logging.info(info_str)
     await interaction.response.send_message(info_str)
 
@@ -631,6 +636,15 @@ async def reasoning(interaction:discord.Interaction, reasoning:Literal["none","l
     global active_character
     active_character.reasoning = reasoning
     await interaction.response.send_message(f"{active_character.name} verwendet jetzt Reasoning: {reasoning}")
+
+@tree.command(name="web-search", description="Erlaubt oder verbietet dem aktiven Character das Verwenden der Web Suche",guild=discord.Object(id=secrets["discord.guild_id"]))
+async def web_search(interaction:discord.Interaction, web_search:Literal["ein","aus"]):
+    global active_character
+    active_character.tools = "web_search" if web_search == "ein" else "none"
+    if web_search == "ein":
+        await interaction.response.send_message(f"{active_character.name} kann jetzt die Web Suche verwenden.")
+    else:
+        await interaction.response.send_message(f"{active_character.name} kann jetzt die Web Suche nicht mehr verwenden.")
 
 @tree.command(name="video", description="Generiert ein Video",guild=discord.Object(id=secrets["discord.guild_id"]))
 async def video(interaction: discord.Interaction, prompt:str, dauer:Literal['4','8','12']='4',auflösung:Literal["720x1280","1280x720"]="720x1280"):#"1024x1792","1792x1024" for sora-2-pro
