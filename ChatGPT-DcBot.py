@@ -7,6 +7,7 @@ import threading
 import sys
 import asyncio,os,shutil
 import string, io
+import hashlib
 from typing import Literal
 from ffmpeg import FFmpeg
 from datetime import datetime
@@ -121,12 +122,13 @@ class Character:
                 return message_to_read
         return -2
 
-    async def chat(self,prompt=None,user=None, reasoning=None):
+    async def chat(self,prompt=None,user:discord.User =None, reasoning=None):
         try:
             if prompt:
                 msg={"role": "user", "content": prompt}
                 if user:
-                    msg["content"]=f"{user}: {msg['content']}"
+                    msg["content"]=f"{user.display_name}: {msg['content']}"
+                    hash_user = hashlib.sha256(user.id.encode()).hexdigest()
                 self.message_memory.append(msg)
             response = await client.responses.create(
                 model=self.model,
@@ -136,6 +138,7 @@ class Character:
                 reasoning={"effort": reasoning if reasoning else self.reasoning},
                 max_output_tokens=character_config["general"]["max_completion_tokens"],
                 store = False,
+                safety_identifier = hash_user if user else None
             )
             logging.debug(f"API-Response received: {response}")
             antwort=response.output_text
@@ -293,6 +296,7 @@ async def info(interaction: discord.Interaction):
     info_str=f"""​\nAktiver Character: **{active_character.name}**
 Verwendetes Model: **{active_character.model}**
 Audio Model: **{active_character.audio_model}**
+Derzeitiges Reasoning: **{active_character.reasoning}**
 Aktuelle Tokens: **{active_character.total_token}**
 Nachrichten im Kontext: **{messages_len}**
 Gesamtanzahl Nachrichten: **{active_character.total_messages}**
@@ -677,7 +681,7 @@ async def on_message(message:discord.Message):
         logging.debug(f"Got this message: {message.clean_content}")
         async with message.channel.typing():
             active_character.total_messages += 1
-            content = await active_character.chat(message.clean_content,message.author.display_name)
+            content = await active_character.chat(message.clean_content,message.author)
             msgs = partion_discord_message(content)
             for msg in msgs:
                 await message.reply(msg)
