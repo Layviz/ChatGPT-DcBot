@@ -232,12 +232,13 @@ removed. Also spaces are replaced with underscores.
 
 async def get_chatgpt_heading(text:str):
     try:
-        response = await client.chat.completions.create(model="gpt-6-luna",
-                                                        instructions="Gib dem folgenenden Text eine kurze passende einzigartige Überschrift mit maximal 43 Buchstaben.",
-                                                        messages=[
+        response = await client.responses.create(model="gpt-6-luna",
+                                                        instructions="Gib dem folgenenden Text eine kurze passende einzigartige Überschrift mit maximal 40 Buchstaben.",
+                                                        reasoning={"effort": "none"},
+                                                        input=[
             {"role":"user","content":text},
         ])
-        logging.debug(f" Heading hat {response.usage.completion_tokens} Tokens")
+        logging.debug(f" Heading hat {response.usage.total_tokens} Tokens")
         antwort=response.output_text
         logging.debug(f"Heading für Text ist: {antwort}")
         filename = format_filename(antwort)+".mp3"
