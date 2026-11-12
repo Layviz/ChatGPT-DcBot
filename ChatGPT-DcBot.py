@@ -128,13 +128,13 @@ class Character:
                 msg={"role": "user", "content": prompt}
                 if user:
                     msg["content"]=f"{user.display_name}: {msg['content']}"
-                    hash_user = hashlib.sha256(user.id.encode()).hexdigest()
+                    hash_user = hashlib.sha256(str(user.id).encode()).hexdigest()
                 self.message_memory.append(msg)
             response = await client.responses.create(
                 model=self.model,
                 instructions=self.dev_message,
                 input=self.message_memory,
-                temperature=self.temperature,
+                temperature=self.temperature if self.reasoning == "none" else None,
                 reasoning={"effort": reasoning if reasoning else self.reasoning},
                 max_output_tokens=character_config["general"]["max_completion_tokens"],
                 store = False,
@@ -171,7 +171,7 @@ class Character:
         active_character = self
         info_str=f"Die bisherige Konversation wurde gelöscht und {self.name} ist erschienen."
         logging.info(info_str)
-        response = await self.chat("HALLO",interaction.user.display_name)
+        response = await self.chat("HALLO",interaction.user)
         msgs = partion_discord_message(response)
         for msg in msgs:
             await interaction.followup.send(msg)
@@ -625,6 +625,12 @@ async def vorlesen_toggle(interaction:discord.Interaction,status:Literal["ein","
         await interaction.response.send_message("Vorlesen im Voice Chat ist nun aktiviert.")
     else:
         await interaction.response.send_message("Vorlesen im Voice Chat ist nun deaktiviert.")
+
+@tree.command(name="reasoning", description="Ändert das Reasoning des aktiven Characters",guild=discord.Object(id=secrets["discord.guild_id"]))
+async def reasoning(interaction:discord.Interaction, reasoning:Literal["none","low","medium","high","xhigh","max"]):
+    global active_character
+    active_character.reasoning = reasoning
+    await interaction.response.send_message(f"{active_character.name} verwendet jetzt Reasoning: {reasoning}")
 
 @tree.command(name="video", description="Generiert ein Video",guild=discord.Object(id=secrets["discord.guild_id"]))
 async def video(interaction: discord.Interaction, prompt:str, dauer:Literal['4','8','12']='4',auflösung:Literal["720x1280","1280x720"]="720x1280"):#"1024x1792","1792x1024" for sora-2-pro
